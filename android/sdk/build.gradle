@@ -44,7 +44,6 @@ version = "0.17.0"
 
 android {
     compileSdkVersion project.compileSdkVersion
-    buildToolsVersion project.buildToolsVersion
     resourcePrefix "weex"
 
     useLibrary 'org.apache.http.legacy'

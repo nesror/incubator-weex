@@ -35,10 +35,6 @@
 @implementation WXScrollerComponnetView
 @end
 
-@interface WXScrollerComponnetView(WXScrollerComponnetView_ContentInsetAdjustmentBehavior)
-@property(nonatomic, assign)NSUInteger contentInsetAdjustmentBehavior;
-@end
-
 @interface WXScrollToTarget : NSObject
 
 @property (nonatomic, weak)   WXComponent *target;
@@ -189,12 +185,13 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
     if (_alwaysScrollableVertical) {
         scrollView.alwaysBounceVertical = [WXConvert BOOL:_alwaysScrollableVertical];
     }
-    if (WX_SYS_VERSION_GREATER_THAN_OR_EQUAL_TO(@"11.0")) {
-        // now use the runtime to forbid the contentInset being Adjusted.
-        // here we add a category for scoller component view class compatible for new API,
-        // as we are concerning about weexSDK build as framework by Xcode8, using in Xcode9 project,
-        // so the the macro __IPHONE_11_0 will be useless in this case.
-        scrollView.contentInsetAdjustmentBehavior = 2;
+    
+    if (@available(iOS 11.0, *)) {
+        if ([scrollView respondsToSelector:@selector(setContentInsetAdjustmentBehavior:)]) {
+            scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+        }
+    } else {
+        // Fallback on earlier versions
     }
     
     if (self.ancestorScroller) {
@@ -268,6 +265,10 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
     }
     if (attributes[@"offsetAccuracy"]) {
         _offsetAccuracy = [WXConvert WXPixelType:attributes[@"offsetAccuracy"] scaleFactor:self.weexInstance.pixelScaleFactor];
+    }
+    
+    if (attributes[@"scrollDirection"]) {
+        _scrollDirection = attributes[@"scrollDirection"] ? [WXConvert WXScrollDirection:attributes[@"scrollDirection"]] : WXScrollDirectionVertical;
     }
 }
 
@@ -443,8 +444,14 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
 
 - (BOOL)isNeedLoadMore
 {
-    if (_loadMoreOffset >= 0.0 && ((UIScrollView *)self.view).contentOffset.y >= 0) {
-        return _previousLoadMoreContentHeight != ((UIScrollView *)self.view).contentSize.height && ((UIScrollView *)self.view).contentSize.height - ((UIScrollView *)self.view).contentOffset.y -  self.view.frame.size.height <= _loadMoreOffset;
+    if (WXScrollDirectionVertical == _scrollDirection) {
+        if (_loadMoreOffset >= 0.0 && ((UIScrollView *)self.view).contentOffset.y >= 0) {
+            return _previousLoadMoreContentHeight != ((UIScrollView *)self.view).contentSize.height && ((UIScrollView *)self.view).contentSize.height - ((UIScrollView *)self.view).contentOffset.y -  self.view.frame.size.height <= _loadMoreOffset;
+        }
+    } else if (WXScrollDirectionHorizontal == _scrollDirection) {
+        if (_loadMoreOffset >= 0.0 && ((UIScrollView *)self.view).contentOffset.x >= 0) {
+            return _previousLoadMoreContentHeight != ((UIScrollView *)self.view).contentSize.width && ((UIScrollView *)self.view).contentSize.width - ((UIScrollView *)self.view).contentOffset.x -  self.view.frame.size.width <= _loadMoreOffset;
+        }
     }
     
     return NO;
@@ -453,7 +460,12 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
 - (void)loadMore
 {
     [self fireEvent:@"loadmore" params:nil];
-    _previousLoadMoreContentHeight = ((UIScrollView *)self.view).contentSize.height;
+    
+    if (WXScrollDirectionVertical == _scrollDirection) {
+        _previousLoadMoreContentHeight = ((UIScrollView *)self.view).contentSize.height;
+    } else if (WXScrollDirectionHorizontal == _scrollDirection) {
+        _previousLoadMoreContentHeight = ((UIScrollView *)self.view).contentSize.width;
+    }
 }
 
 - (CGPoint)contentOffset
@@ -547,11 +559,16 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
         _direction = @"right";
     } else if (_lastContentOffset.x < scrollView.contentOffset.x) {
         _direction = @"left";
+        if (WXScrollDirectionHorizontal == _scrollDirection) {
+            [self handleLoadMore];
+        }
     } else if(_lastContentOffset.y > scrollView.contentOffset.y) {
         _direction = @"down";
     } else if(_lastContentOffset.y < scrollView.contentOffset.y) {
         _direction = @"up";
-        [self handleLoadMore];
+        if (WXScrollDirectionVertical == _scrollDirection) {
+            [self handleLoadMore];
+        }
     }
     
     CGFloat scaleFactor = self.weexInstance.pixelScaleFactor;

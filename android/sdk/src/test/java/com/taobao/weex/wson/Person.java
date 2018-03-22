@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,19 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package com.taobao.weex.wson;
 
-#import "WXComponent.h"
+import com.alibaba.fastjson.annotation.JSONField;
 
-@interface WXWebComponent : WXComponent<UIWebViewDelegate>
+/**
+ * Created by furture on 2018/3/9.
+ */
 
-- (void)notifyWebview:(NSDictionary *) data;
-
-- (void)postMessage:(NSDictionary *) data;
-
-- (void)reload;
-
-- (void)goBack;
-
-- (void)goForward;
-
-@end
+public class Person {
+    @JSONField(name = "uid")
+    public  String id = "3333";
+}

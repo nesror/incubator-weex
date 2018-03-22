@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package com.taobao.weex.wson;
 
-#import "WXComponent.h"
+import com.alibaba.fastjson.JSON;
 
-@interface WXWebComponent : WXComponent<UIWebViewDelegate>
+import junit.framework.TestCase;
 
-- (void)notifyWebview:(NSDictionary *) data;
+import org.junit.Assert;
 
-- (void)postMessage:(NSDictionary *) data;
+/**
+ * Created by furture on 2018/3/9.
+ */
 
-- (void)reload;
+public class AnnoTest extends TestCase {
 
-- (void)goBack;
-
-- (void)goForward;
-
-@end
+    public void testAnno(){
+        Person person = new Person();
+        person.id = "3333";
+        for(int i=0; i<10; i++) {
+            Assert.assertEquals(JSON.toJSONString(person),
+                    JSON.toJSONString(Wson.parse(Wson.toWson(person))));
+        }
+    }
+}

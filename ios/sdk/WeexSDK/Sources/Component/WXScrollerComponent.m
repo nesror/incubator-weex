@@ -50,7 +50,7 @@
 @interface WXScrollerComponent()
 
 @property (nonatomic, strong) NSMutableArray *  stickyArray;
-@property (nonatomic, strong) NSMutableArray *  listenerArray;
+@property (nonatomic, strong) NSMutableArray * listenerArray;
 @property (nonatomic, weak) WXRefreshComponent *refreshComponent;
 @property (nonatomic, weak) WXLoadingComponent *loadingComponent;
 
@@ -382,7 +382,8 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
 - (void)addScrollToListener:(WXComponent *)target
 {
     BOOL has = NO;
-    for (WXScrollToTarget *targetData in self.listenerArray) {
+    NSMutableArray *listenerArray = [self.listenerArray copy];
+    for (WXScrollToTarget *targetData in listenerArray) {
         if (targetData.target == target) {
             has = YES;
             break;
@@ -400,7 +401,8 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
 {
     if (_shouldRemoveScrollerListener) {
         WXScrollToTarget *targetData = nil;
-        for (WXScrollToTarget *targetDataTemp in self.listenerArray) {
+        NSMutableArray *listenerArray = [self.listenerArray copy];
+        for (WXScrollToTarget *targetDataTemp in listenerArray) {
             if (targetDataTemp.target == target) {
                 targetData = targetDataTemp;
                 break;

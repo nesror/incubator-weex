@@ -31,6 +31,9 @@ public interface IWebView {
     public void goBack();
     public void goForward();
     public void postMessage(Object msg);
+
+    int getWebContentHeight();
+
     public void setShowLoading(boolean shown);
     public void setOnErrorListener(OnErrorListener listener);
     public void setOnPageListener(OnPageListener listener);

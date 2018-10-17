@@ -107,6 +107,7 @@ public class WXWeb extends WXComponent {
                     params.put("url", url);
                     params.put("canGoBack", canGoBack);
                     params.put("canGoForward", canGoForward);
+                    params.put("contentHeight", mWebView.getWebContentHeight());
                     fireEvent(Constants.Event.PAGEFINISH, params);
                 }
             }

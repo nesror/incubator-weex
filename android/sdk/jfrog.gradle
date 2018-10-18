@@ -9,7 +9,7 @@ repositories {
 
 def packageName = 'com.twl.qichechaoren'
 def artifactName = 'weex_sdk'
-def libraryVersion = "0.1.1"
+def libraryVersion = "0.1.20"
 
 publishing {
     publications {

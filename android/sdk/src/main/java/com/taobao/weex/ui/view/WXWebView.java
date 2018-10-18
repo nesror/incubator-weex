@@ -172,11 +172,20 @@ public class WXWebView implements IWebView {
     @Override
     public int getWebContentHeight() {
         //重新调整webview高度
-        mWebView.measure(0, 0);
-        int measuredHeight = mWebView.getMeasuredHeight();
-        //Log.d("WXWebView", "measuredHeight=" + measuredHeight);
-        return measuredHeight;
+        int height = (int)(mWebView.getContentHeight() * mWebView.getScale());
+        if (height < 1) {
+            int measureWidth = View.MeasureSpec.makeMeasureSpec((1 << 30) - 1, View.MeasureSpec.AT_MOST);
+            int measureHeight = View.MeasureSpec.makeMeasureSpec((1 << 30) - 1, View.MeasureSpec.AT_MOST);
+            mWebView.measure(measureWidth, measureHeight);
+            height = mWebView.getMeasuredHeight();
+        }
+
+        Log.d("WXWebView", "measuredHeight=" + height);
+        return height;
+
     }
+
+
 
     /*@Override
     public void setVisibility(int visibility) {
@@ -215,8 +224,9 @@ public class WXWebView implements IWebView {
         mWebView.setVisibility(shown ? View.VISIBLE : View.INVISIBLE);
     }
 
-    private @Nullable
-    WebView getWebView() {
+    @Override
+    @Nullable
+    public WebView getWebView() {
         //TODO: remove this, duplicate with getView semantically.
         return mWebView;
     }

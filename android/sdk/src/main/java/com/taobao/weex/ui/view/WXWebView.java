@@ -232,10 +232,13 @@ public class WXWebView implements IWebView {
     }
 
     private void initWebView(WebView wv) {
+
         WebSettings settings = wv.getSettings();
         settings.setJavaScriptEnabled(true);
+        settings.setAllowFileAccess(true);
         settings.setAppCacheEnabled(true);
         settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
         settings.setDomStorageEnabled(true);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);

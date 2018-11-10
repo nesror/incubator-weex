@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -21,6 +21,7 @@ package com.taobao.weex;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 
@@ -46,16 +47,7 @@ import com.taobao.weex.common.WXErrorCode;
 import com.taobao.weex.common.WXException;
 import com.taobao.weex.common.WXInstanceWrap;
 import com.taobao.weex.common.WXModule;
-import com.taobao.weex.dom.BasicEditTextDomObject;
-import com.taobao.weex.dom.TextAreaEditTextDomObject;
-import com.taobao.weex.dom.WXCellDomObject;
-import com.taobao.weex.dom.WXDomObject;
-import com.taobao.weex.dom.WXDomRegistry;
-import com.taobao.weex.dom.WXListDomObject;
-import com.taobao.weex.dom.WXRecyclerDomObject;
-import com.taobao.weex.dom.WXScrollerDomObject;
-import com.taobao.weex.dom.WXSwitchDomObject;
-import com.taobao.weex.dom.WXTextDomObject;
+import com.taobao.weex.common.WXPerformance;
 import com.taobao.weex.http.WXStreamModule;
 import com.taobao.weex.ui.ExternalLoaderComponentHolder;
 import com.taobao.weex.ui.IExternalComponentGetter;
@@ -101,14 +93,16 @@ import com.taobao.weex.utils.WXLogUtils;
 import com.taobao.weex.utils.WXSoInstallMgrSdk;
 import com.taobao.weex.utils.batch.BatchOperationHelper;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WXSDKEngine {
+import static com.taobao.weex.WXEnvironment.CORE_SO_NAME;
+
+public class WXSDKEngine implements Serializable {
 
   public static final String JS_FRAMEWORK_RELOAD="js_framework_reload";
-
-  private static final String V8_SO_NAME = "weexjsc";
+  private static final String V8_SO_NAME = CORE_SO_NAME;
   private volatile static boolean mIsInit = false;
   private static final Object mLock = new Object();
   private static final String TAG = "WXSDKEngine";
@@ -135,9 +129,9 @@ public class WXSDKEngine {
   @Deprecated
   public static void init(Application application, IWXUserTrackAdapter utAdapter, String framework) {
     initialize(application,
-      new InitConfig.Builder()
-        .setUtAdapter(utAdapter)
-        .build()
+            new InitConfig.Builder()
+                    .setUtAdapter(utAdapter)
+                    .build()
     );
   }
 
@@ -164,29 +158,49 @@ public class WXSDKEngine {
       if(WXEnvironment.isApkDebugable()){
         WXEnvironment.sLogLevel = LogLevel.DEBUG;
       }else{
-		if(WXEnvironment.sApplication != null){
-		  WXEnvironment.sLogLevel = LogLevel.WARN;
-		}else {
-		  WXLogUtils.e(TAG,"WXEnvironment.sApplication is " + WXEnvironment.sApplication);
-		}
+        if(WXEnvironment.sApplication != null){
+          WXEnvironment.sLogLevel = LogLevel.WARN;
+        }else {
+          WXLogUtils.e(TAG,"WXEnvironment.sApplication is " + WXEnvironment.sApplication);
+        }
       }
       doInitInternal(application,config);
+      registerApplicationOptions(application);
       WXEnvironment.sSDKInitInvokeTime = System.currentTimeMillis()-start;
       WXLogUtils.renderPerformanceLog("SDKInitInvokeTime", WXEnvironment.sSDKInitInvokeTime);
+      WXPerformance.init();
       mIsInit = true;
+    }
+  }
+
+  private static void registerApplicationOptions(final Application application) {
+
+    if (application == null) {
+      WXLogUtils.e(TAG, "RegisterApplicationOptions application is null");
+      return;
+    }
+
+    Resources resources = application.getResources();
+    registerCoreEnv("screen_width_pixels", String.valueOf(resources.getDisplayMetrics().widthPixels));
+    registerCoreEnv("screen_height_pixels", String.valueOf(resources.getDisplayMetrics().heightPixels));
+
+    int resourceId = resources.getIdentifier("status_bar_height", "dimen", "android");
+    if (resourceId > 0) {
+      int statusBarHeight = resources.getDimensionPixelSize(resourceId);
+      registerCoreEnv("status_bar_height", String.valueOf(statusBarHeight));
     }
   }
 
   private static void doInitInternal(final Application application,final InitConfig config){
     WXEnvironment.sApplication = application;
-	if(application == null){
-	  WXLogUtils.e(TAG, " doInitInternal application is null");
-	  WXExceptionUtils.commitCriticalExceptionRT(null,
-			  WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT.getErrorCode(),
-			  "doInitInternal",
-			  WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT.getErrorMsg() + "WXEnvironment sApplication is null",
-			  null);
-	}
+    if(application == null){
+      WXLogUtils.e(TAG, " doInitInternal application is null");
+      WXExceptionUtils.commitCriticalExceptionRT(null,
+              WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT,
+              "doInitInternal",
+              WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT.getErrorMsg() + "WXEnvironment sApplication is null",
+              null);
+    }
     WXEnvironment.JsFrameworkInit = false;
 
     WXBridgeManager.getInstance().post(new Runnable() {
@@ -199,15 +213,15 @@ public class WXSDKEngine {
           sm.setInitConfig(config);
         }
         WXSoInstallMgrSdk.init(application,
-                              sm.getIWXSoLoaderAdapter(),
-                              sm.getWXStatisticsListener());
+                sm.getIWXSoLoaderAdapter(),
+                sm.getWXStatisticsListener());
         boolean isSoInitSuccess = WXSoInstallMgrSdk.initSo(V8_SO_NAME, 1, config!=null?config.getUtAdapter():null);
         if (!isSoInitSuccess) {
-		  WXExceptionUtils.commitCriticalExceptionRT(null,
-				  WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT.getErrorCode(),
-				  "doInitInternal",
-				  WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT.getErrorMsg() + "isSoInit false",
-				  null);
+          WXExceptionUtils.commitCriticalExceptionRT(null,
+                  WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT,
+                  "doInitInternal",
+                  WXErrorCode.WX_KEY_EXCEPTION_SDK_INIT.getErrorMsg() + "isSoInit false",
+                  null);
 
           return;
         }
@@ -223,11 +237,11 @@ public class WXSDKEngine {
   @Deprecated
   public static void init(Application application, String framework, IWXUserTrackAdapter utAdapter, IWXImgLoaderAdapter imgLoaderAdapter, IWXHttpAdapter httpAdapter) {
     initialize(application,
-      new InitConfig.Builder()
-        .setUtAdapter(utAdapter)
-        .setHttpAdapter(httpAdapter)
-        .setImgAdapter(imgLoaderAdapter)
-        .build()
+            new InitConfig.Builder()
+                    .setUtAdapter(utAdapter)
+                    .setHttpAdapter(httpAdapter)
+                    .setImgAdapter(imgLoaderAdapter)
+                    .build()
     );
   }
 
@@ -239,57 +253,57 @@ public class WXSDKEngine {
     BatchOperationHelper batchHelper = new BatchOperationHelper(WXBridgeManager.getInstance());
     try {
       registerComponent(
-        new SimpleComponentHolder(
-          WXText.class,
-          new WXText.Creator()
-        ),
-        false,
-        WXBasicComponentType.TEXT
+              new SimpleComponentHolder(
+                      WXText.class,
+                      new WXText.Creator()
+              ),
+              false,
+              WXBasicComponentType.TEXT
       );
       registerComponent(
-        new SimpleComponentHolder(
-          WXDiv.class,
-          new WXDiv.Ceator()
-        ),
-        false,
-        WXBasicComponentType.CONTAINER,
-        WXBasicComponentType.DIV,
-        WXBasicComponentType.HEADER,
-        WXBasicComponentType.FOOTER
+              new SimpleComponentHolder(
+                      WXDiv.class,
+                      new WXDiv.Ceator()
+              ),
+              false,
+              WXBasicComponentType.CONTAINER,
+              WXBasicComponentType.DIV,
+              WXBasicComponentType.HEADER,
+              WXBasicComponentType.FOOTER
       );
       registerComponent(
-        new SimpleComponentHolder(
-          WXImage.class,
-          new WXImage.Ceator()
-        ),
-        false,
-        WXBasicComponentType.IMAGE,
-        WXBasicComponentType.IMG
+              new SimpleComponentHolder(
+                      WXImage.class,
+                      new WXImage.Creator()
+              ),
+              false,
+              WXBasicComponentType.IMAGE,
+              WXBasicComponentType.IMG
       );
       registerComponent(
-        new SimpleComponentHolder(
-          WXScroller.class,
-          new WXScroller.Creator()
-        ),
-        false,
-        WXBasicComponentType.SCROLLER
+              new SimpleComponentHolder(
+                      WXScroller.class,
+                      new WXScroller.Creator()
+              ),
+              false,
+              WXBasicComponentType.SCROLLER
       );
       registerComponent(
-        new SimpleComponentHolder(
-          WXSlider.class,
-          new WXSlider.Creator()
-        ),
-        true,
-        WXBasicComponentType.SLIDER,
-        WXBasicComponentType.CYCLE_SLIDER
+              new SimpleComponentHolder(
+                      WXSlider.class,
+                      new WXSlider.Creator()
+              ),
+              true,
+              WXBasicComponentType.SLIDER,
+              WXBasicComponentType.CYCLE_SLIDER
       );
       registerComponent(
-        new SimpleComponentHolder(
-                WXSliderNeighbor.class,
-          new WXSliderNeighbor.Creator()
-        ),
-        true,
-        WXBasicComponentType.SLIDER_NEIGHBOR
+              new SimpleComponentHolder(
+                      WXSliderNeighbor.class,
+                      new WXSliderNeighbor.Creator()
+              ),
+              true,
+              WXBasicComponentType.SLIDER_NEIGHBOR
       );
       String simpleList = "simplelist";
       registerComponent(SimpleListComponent.class,false,simpleList);
@@ -313,7 +327,7 @@ public class WXSDKEngine {
 
       registerModule("modal", WXModalUIModule.class, false);
       registerModule("instanceWrap", WXInstanceWrap.class, true);
-      registerModule("animation", WXAnimationModule.class, false);
+      registerModule("animation", WXAnimationModule.class, true);
       registerModule("webview", WXWebViewModule.class, true);
       registerModule("navigator", WXNavigatorModule.class);
       registerModule("stream", WXStreamModule.class);
@@ -325,31 +339,12 @@ public class WXSDKEngine {
       registerModule("meta", WXMetaModule.class,true);
       registerModule("webSocket", WebSocketModule.class);
       registerModule("locale", WXLocaleModule.class);
-
-
-      registerDomObject(simpleList, WXListDomObject.class);
-      registerDomObject(WXBasicComponentType.INDICATOR, WXIndicator.IndicatorDomNode.class);
-      registerDomObject(WXBasicComponentType.TEXT, WXTextDomObject.class);
-      registerDomObject(WXBasicComponentType.HEADER, WXCellDomObject.class);
-      registerDomObject(WXBasicComponentType.CELL, WXCellDomObject.class);
-      registerDomObject(WXBasicComponentType.CELL_SLOT, WXCellDomObject.class);
-      registerDomObject(WXBasicComponentType.INPUT, BasicEditTextDomObject.class);
-      registerDomObject(WXBasicComponentType.TEXTAREA, TextAreaEditTextDomObject.class);
-      registerDomObject(WXBasicComponentType.SWITCH, WXSwitchDomObject.class);
-      registerDomObject(WXBasicComponentType.LIST, WXListDomObject.class);
-      registerDomObject(WXBasicComponentType.RECYCLE_LIST, WXRecyclerDomObject.class);
-      registerDomObject(WXBasicComponentType.VLIST, WXListDomObject.class);
-      registerDomObject(WXBasicComponentType.HLIST, WXListDomObject.class);
-      registerDomObject(WXBasicComponentType.SCROLLER, WXScrollerDomObject.class);
-      registerDomObject(WXBasicComponentType.RECYCLER, WXRecyclerDomObject.class);
-      registerDomObject(WXBasicComponentType.WATERFALL, WXRecyclerDomObject.class);
     } catch (WXException e) {
       WXLogUtils.e("[WXSDKEngine] register:", e);
     }
     AutoScanConfigRegister.doScanConfig();
     batchHelper.flush();
   }
-
 
   /**
    *
@@ -388,14 +383,19 @@ public class WXSDKEngine {
 
   public static boolean registerComponent(IFComponentHolder holder, boolean appendTree, String ... names) throws WXException {
     boolean result =  true;
-    for(String name:names) {
-      Map<String, Object> componentInfo = new HashMap<>();
-      if (appendTree) {
-        componentInfo.put("append", "tree");
+    try {
+      for (String name : names) {
+        Map<String, Object> componentInfo = new HashMap<>();
+        if (appendTree) {
+          componentInfo.put("append", "tree");
+        }
+        result = result && WXComponentRegistry.registerComponent(name, holder, componentInfo);
       }
-      result  = result && WXComponentRegistry.registerComponent(name, holder, componentInfo);
+      return result;
+    } catch (Throwable e) {
+      e.printStackTrace();
+      return result;
     }
-    return result;
   }
 
   /**
@@ -454,10 +454,6 @@ public class WXSDKEngine {
     public DestroyableModuleFactory(Class<T> clz) {
       super(clz);
     }
-  }
-
-  public static boolean registerDomObject(String type, Class<? extends WXDomObject> clazz) throws WXException {
-    return WXDomRegistry.registerDomObject(type, clazz);
   }
 
   public static void callback(String instanceId, String funcId, Map<String, Object> data) {
@@ -526,7 +522,6 @@ public class WXSDKEngine {
     WXBridgeManager.getInstance().restart();
     WXBridgeManager.getInstance().initScriptsFramework(framework);
 
-    WXServiceManager.reload();
     WXModuleManager.reload();
     WXComponentRegistry.reload();
     WXSDKManager.getInstance().postOnUiThread(new Runnable() {
@@ -537,10 +532,14 @@ public class WXSDKEngine {
     }, 0);
   }
   public static void reload(final Context context, boolean remoteDebug) {
-   reload(context,null,remoteDebug);
+    reload(context,null,remoteDebug);
   }
 
   public static void reload() {
     reload(WXEnvironment.getApplication(), WXEnvironment.sRemoteDebugMode);
+  }
+
+  public static void registerCoreEnv(String key, String value) {
+    WXBridgeManager.getInstance().registerCoreEnv(key, value);
   }
 }

@@ -26,6 +26,12 @@ public class Constants {
     int VERTICAL = 1;
   }
 
+  public interface Weex {
+    String REF = "ref";
+    String INSTANCEID = "instanceid";
+    String TYPE = "type";
+  }
+
   public interface Name {
 
     String DEFAULT_WIDTH = "defaultWidth";
@@ -121,12 +127,13 @@ public class Constants {
     String LOADMOREOFFSET = "loadmoreoffset";
     String RECYCLE_IMAGE = "recycleImage";
     String LAYOUT = "layout";
-    String COLUMN_WIDTH= "columnWidth";
-    String COLUMN_COUNT= "columnCount";
-    String COLUMN_GAP= "columnGap";
+    String SPAN_OFFSETS = "spanOffsets";
+    String COLUMN_WIDTH = "columnWidth";
+    String COLUMN_COUNT = "columnCount";
+    String COLUMN_GAP = "columnGap";
+    String SHOW_SCROLLBAR = "showScrollbar";
     String LEFT_GAP= "leftGap";
     String RIGHT_GAP= "rightGap";
-    String SHOW_SCROLLBAR= "showScrollbar";
     String OVERFLOW = "overflow";
     String TYPE = "type";
     String PLACEHOLDER = "placeholder";
@@ -189,9 +196,12 @@ public class Constants {
     String ARIA_HIDDEN = "ariaHidden";
     String ROLE = "role";
 
+    String LAYERLIMIT = "layerLimit";
+    String LAYER_LIMIT = "layer-limit";
+
     String DIRECTION = "direction";
     String RTL = "rtl";
-    
+
     String STICKY_OFFSET = "stickyOffset";
     String HAS_FIXED_SIZE = "hasFixedSize";
     String KEEP_POSITION_LAYOUT_DELAY = "keepPositionLayoutDelay";
@@ -206,8 +216,6 @@ public class Constants {
     String ALLOW_COPY_PASTE = "allowCopyPaste";
     String INCLUDE_FONT_PADDING = "includeFontPadding";
     String ENABLE_COPY = "enableCopy";
-
-
 
 
     interface  Recycler{
@@ -227,12 +235,13 @@ public class Constants {
     String FLAT = "flat";
     String RIPPLE_ENABLED = "rippleEnabled";
 
-
     String SHOULD_STOP_PROPAGATION_INIT_RESULT = "shouldStopPropagationInitResult";
     String SHOULD_STOP_PROPAGATION_INTERVAL = "shouldStopPropagationInterval";
 
 
     String NEST_SCROLLING_ENABLED = "nestedScrollingEnabled";
+
+    String ORIENTATION  = "orientation";
   }
 
   public interface Value {
@@ -243,8 +252,8 @@ public class Constants {
     int AUTO = -1;
     int COLUMN_GAP_NORMAL = 32;
     int COLUMN_COUNT_NORMAL = 1;
-    String MULTI_COLUMN= "multi-column";
-    String GRID= "grid";
+    String MULTI_COLUMN = "multi-column";
+    String GRID = "grid";
     String STICKY = "sticky";
     String FIXED = "fixed";
     String LEFT = "left";
@@ -320,7 +329,9 @@ public class Constants {
 
     String ON_TRANSITION_END = "transitionEnd";
 
-    interface SLOT_LIFECYCLE{
+    String LAYEROVERFLOW = "layeroverflow";
+
+    interface SLOT_LIFECYCLE {
       String CREATE = "create";
       String ATTACH = "attach";
       String DETACH = "detach";
@@ -328,7 +339,9 @@ public class Constants {
     }
 
     String STOP_PROPAGATION = "stopPropagation";
+    String STOP_PROPAGATION_RAX = "stoppropagation";
     String ONMESSAGE = "message";
+    String NATIVE_BACK = "nativeback";
   }
 
   public interface PSEUDO {
@@ -355,7 +368,7 @@ public class Constants {
     String SAVE_PATH = "v8";
   }
 
-  public interface  TimeFunction{
+  public interface TimeFunction {
     String LINEAR = "linear";
     String EASE_IN_OUT = "ease-in-out";
     String EASE_IN = "ease-in";

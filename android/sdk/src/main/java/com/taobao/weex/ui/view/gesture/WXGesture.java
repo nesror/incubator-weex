@@ -35,6 +35,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.taobao.weex.bridge.EventResult;
 import com.taobao.weex.common.Constants;
+import com.taobao.weex.dom.WXEvent;
 import com.taobao.weex.ui.component.Scrollable;
 import com.taobao.weex.ui.component.WXComponent;
 import com.taobao.weex.ui.view.gesture.WXGestureType.GestureInfo;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.taobao.weex.common.Constants.Event.STOP_PROPAGATION;
+import static com.taobao.weex.common.Constants.Event.STOP_PROPAGATION_RAX;
 
 public class WXGesture extends GestureDetector.SimpleOnGestureListener implements OnTouchListener {
 
@@ -95,8 +97,8 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
     if(parentScrollable != null) {
       mParentOrientation = parentScrollable.getOrientation();
     }
-    shouldBubbleResult =  WXUtils.getBoolean(wxComponent.getDomObject().getAttrs().get(Constants.Name.SHOULD_STOP_PROPAGATION_INIT_RESULT), true);
-    shouldBubbleInterval = WXUtils.getNumberInt(wxComponent.getDomObject().getAttrs().get(Constants.Name.SHOULD_STOP_PROPAGATION_INTERVAL), 0);
+    shouldBubbleResult =  WXUtils.getBoolean(wxComponent.getAttrs().get(Constants.Name.SHOULD_STOP_PROPAGATION_INIT_RESULT), true);
+    shouldBubbleInterval = WXUtils.getNumberInt(wxComponent.getAttrs().get(Constants.Name.SHOULD_STOP_PROPAGATION_INTERVAL), 0);
   }
 
   private boolean isParentScrollable() {
@@ -109,7 +111,7 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
 
   private boolean hasSameOrientationWithParent(){
     return (mParentOrientation == Constants.Orientation.HORIZONTAL && component.containsGesture(HighLevelGesture.HORIZONTALPAN))
-        || (mParentOrientation == Constants.Orientation.VERTICAL && component.containsGesture(HighLevelGesture.VERTICALPAN));
+            || (mParentOrientation == Constants.Orientation.VERTICAL && component.containsGesture(HighLevelGesture.VERTICALPAN));
   }
 
   public void setPreventMoveEvent(boolean preventMoveEvent) {
@@ -127,10 +129,35 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
 
 
   /**
+   * stoppropagation
+   * */
+  public static boolean isStopPropagation(String type){
+    return  Constants.Event.STOP_PROPAGATION.equals(type) || Constants.Event.STOP_PROPAGATION_RAX.equals(type);
+  }
+
+  public static boolean hasStopPropagation(WXComponent component){
+    WXEvent event = component.getEvents();
+    if(event == null){
+      return false;
+    }
+    int size = event.size();
+    for (int i=0; i<size; i++) {
+      if(i >= event.size()){
+        break;
+      }
+      String type = event.get(i);
+      if(isStopPropagation(type)){
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * shouldBubbleEvent default true
    * */
   private boolean shouldBubbleTouchEvent(MotionEvent event){
-    if(component.containsEvent(STOP_PROPAGATION)){
+    if(hasStopPropagation(component)){
       if(shouldBubbleInterval > 0 && shouldBubbleCallRemainTimes > 0){
         shouldBubbleCallRemainTimes--;
         return  shouldBubbleResult;
@@ -145,7 +172,12 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
       }else{
         eventMap.put("action", MOVE);
       }
-      EventResult result = component.fireEventWait(STOP_PROPAGATION, eventMap);
+
+      String name = STOP_PROPAGATION;
+      if(!component.getEvents().contains(STOP_PROPAGATION)){
+         name = STOP_PROPAGATION_RAX;
+      }
+      EventResult result = component.fireEventWait(name, eventMap);
       if(result.isSuccess() && result.getResult() != null){
         boolean stopPropagation = WXUtils.getBoolean(result.getResult(), !shouldBubbleResult);
         shouldBubbleResult = !stopPropagation;
@@ -160,6 +192,7 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
   @Override
   public boolean onTouch(View v, MotionEvent event) {
     if(requestDisallowInterceptTouchEvent){
+      requestDisallowInterceptTouchEvent = false;
       return false;
     }
     try {
@@ -195,7 +228,7 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
           result |= handlePanMotionEvent(event);
           break;
       }
-      if(component.containsEvent(STOP_PROPAGATION)){
+      if(hasStopPropagation(component)){
         ViewGroup parent = (ViewGroup) v.getParent();
         boolean requestDisallowInterceptTouchEvent = false;
         if(parent != null){
@@ -207,7 +240,7 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
         if(component.getParent() != null){
           component.getParent().requestDisallowInterceptTouchEvent(requestDisallowInterceptTouchEvent);
         }
-        if(mIsTouchEventConsumed && WXUtils.getBoolean(component.getDomObject().getAttrs().get("cancelTouchOnConsume"), false)){//when touch event consumed by one gesture, other component should not consumed
+        if(mIsTouchEventConsumed && WXUtils.getBoolean(component.getAttrs().get("cancelTouchOnConsume"), false)){//when touch event consumed by one gesture, other component should not consumed
           event.setAction(MotionEvent.ACTION_CANCEL);
         }
       }
@@ -350,10 +383,10 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
    */
   private boolean isPointerNumChanged(MotionEvent event) {
     return event.getActionMasked() == MotionEvent.ACTION_DOWN ||
-           event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN ||
-           event.getActionMasked() == MotionEvent.ACTION_UP ||
-           event.getActionMasked() == MotionEvent.ACTION_POINTER_UP ||
-           event.getActionMasked() == MotionEvent.ACTION_CANCEL;
+            event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN ||
+            event.getActionMasked() == MotionEvent.ACTION_UP ||
+            event.getActionMasked() == MotionEvent.ACTION_POINTER_UP ||
+            event.getActionMasked() == MotionEvent.ACTION_CANCEL;
   }
 
   /**
@@ -362,8 +395,8 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
    */
   private boolean containsSimplePan() {
     return component.containsGesture(HighLevelGesture.PAN_START) ||
-           component.containsGesture(HighLevelGesture.PAN_MOVE) ||
-           component.containsGesture(HighLevelGesture.PAN_END);
+            component.containsGesture(HighLevelGesture.PAN_MOVE) ||
+            component.containsGesture(HighLevelGesture.PAN_END);
   }
 
   /**
@@ -454,7 +487,7 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
     component.getRealView().getGlobalVisibleRect(globalRect, globalOffset);
     globalEventOffset.offset(globalOffset.x, globalOffset.y);
     return new PointF(WXViewUtils.getWebPxByWidth(globalEventOffset.x,component.getInstance().getInstanceViewPortWidth()),
-                      WXViewUtils.getWebPxByWidth(globalEventOffset.y,component.getInstance().getInstanceViewPortWidth()));
+            WXViewUtils.getWebPxByWidth(globalEventOffset.y,component.getInstance().getInstanceViewPortWidth()));
   }
 
   /**
@@ -500,7 +533,7 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
     component.computeVisiblePointInViewCoordinate(locLeftTop);
     locEventOffset.offset(locLeftTop.x, locLeftTop.y);
     return new PointF(WXViewUtils.getWebPxByWidth(locEventOffset.x,component.getInstance().getInstanceViewPortWidth()),
-                      WXViewUtils.getWebPxByWidth(locEventOffset.y,component.getInstance().getInstanceViewPortWidth()));
+            WXViewUtils.getWebPxByWidth(locEventOffset.y,component.getInstance().getInstanceViewPortWidth()));
   }
 
   private static class GestureHandler extends android.os.Handler {
@@ -518,9 +551,9 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
     if (component.containsGesture(HighLevelGesture.LONG_PRESS)) {
       List<Map<String, Object>> list = createMultipleFireEventParam(e,null);
       component.getInstance().fireEvent(
-          component.getDomObject().getRef(),
-          HighLevelGesture.LONG_PRESS.toString(),
-          list.get(list.size() - 1));
+              component.getRef(),
+              HighLevelGesture.LONG_PRESS.toString(),
+              list.get(list.size() - 1));
       mIsTouchEventConsumed = true;
     }
   }
@@ -562,10 +595,10 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
         panDownTime = e1.getEventTime();
         mPendingPan = HighLevelGesture.PAN_END;
         component.fireEvent(HighLevelGesture.PAN_START.toString(),
-            createFireEventParam(e1, CUR_EVENT, null));
+                createFireEventParam(e1, CUR_EVENT, null));
       } else {
         component.fireEvent(HighLevelGesture.PAN_MOVE.toString(),
-            createFireEventParam(e2, CUR_EVENT, null));
+                createFireEventParam(e2, CUR_EVENT, null));
       }
       result = true;
     } else if (component.containsGesture(HighLevelGesture.SWIPE)) {
@@ -578,8 +611,8 @@ public class WXGesture extends GestureDetector.SimpleOnGestureListener implement
         } else {
           param.put(GestureInfo.DIRECTION, distanceY > 0 ? UP : DOWN);
         }
-        component.getInstance().fireEvent(component.getDomObject().getRef(),
-            HighLevelGesture.SWIPE.toString(), param);
+        component.getInstance().fireEvent(component.getRef(),
+                HighLevelGesture.SWIPE.toString(), param);
         result = true;
       }
     }

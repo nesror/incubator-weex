@@ -18,6 +18,8 @@
  */
 package com.taobao.weex.bridge;
 
+import com.taobao.weex.utils.WXLogUtils;
+
 import java.util.Map;
 
 public class WXParams {
@@ -34,6 +36,8 @@ public class WXParams {
   private String logLevel;
   private String needInitV8;
   private String cacheDir;
+  private String useSingleProcess;
+  private String libJssPath;
 
   private Map<String, String> options;
 
@@ -139,6 +143,15 @@ public class WXParams {
     return logLevel;
   }
 
+  public String getUseSingleProcess() {
+    WXLogUtils.e("getUseSingleProcess is running " + useSingleProcess);
+    return useSingleProcess;
+  }
+
+  public void setUseSingleProcess(String useSingleProcess) {
+    this.useSingleProcess = useSingleProcess;
+  }
+
   public void setLogLevel(String logLevel) {
     this.logLevel = logLevel;
   }
@@ -156,5 +169,14 @@ public class WXParams {
     } else {
       this.needInitV8 = "0";
     }
+  }
+
+  public String getLibJssPath() {
+    WXLogUtils.e("getLibJssPath is running " + libJssPath);
+    return libJssPath;
+  }
+
+  public void setLibJssPath(String libJssPath) {
+    this.libJssPath = libJssPath;
   }
 }

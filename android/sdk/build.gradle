@@ -11,11 +11,8 @@ plugins {
 
 apply plugin: 'com.android.library'
 apply plugin: 'checkstyle'
-<<<<<<< HEAD
-apply plugin: 'com.getkeepsafe.dexcount'
+//apply plugin: 'com.getkeepsafe.dexcount'
 apply from: "./jfrog.gradle"
-=======
->>>>>>> c269fb019a2b5c9cbdb75d8e460d28c5866142cf
 
 ext.disableCov = project.hasProperty('disableCov') ? project.getProperty('disableCov') : 'false'
 if(!disableCov.toBoolean()){

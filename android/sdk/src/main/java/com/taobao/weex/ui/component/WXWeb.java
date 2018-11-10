@@ -102,13 +102,9 @@ public class WXWeb extends WXComponent {
 
             @Override
             public void onPageFinish(String url, boolean canGoBack, boolean canGoForward) {
-<<<<<<< HEAD
-                if ( getDomObject().getEvents().contains(Constants.Event.PAGEFINISH)) {
-                    final Map<String, Object> params = new HashMap<>();
-=======
+
                 if (getEvents().contains(Constants.Event.PAGEFINISH)) {
-                    Map<String, Object> params = new HashMap<>();
->>>>>>> c269fb019a2b5c9cbdb75d8e460d28c5866142cf
+                    final Map<String, Object> params = new HashMap<>();
                     params.put("url", url);
                     params.put("canGoBack", canGoBack);
                     params.put("canGoForward", canGoForward);

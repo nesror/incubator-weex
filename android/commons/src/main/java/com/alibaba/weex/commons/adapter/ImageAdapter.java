@@ -69,7 +69,7 @@ public class ImageAdapter implements IWXImgLoaderAdapter {
           view.setTag(strategy.placeHolder.hashCode(),picasso);
         }
 
-        Picasso.with(WXEnvironment.getApplication())
+        Picasso.get()
                 .load(temp)
                 .transform(new BlurTransformation(strategy.blurRadius))
                 .into(view, new Callback() {
@@ -86,11 +86,11 @@ public class ImageAdapter implements IWXImgLoaderAdapter {
                   }
 
                   @Override
-                  public void onError() {
+                  public void onError(Exception e) {
                     if(strategy.getImageListener()!=null){
                       strategy.getImageListener().onImageFinish(url,view,false,null);
                     }
-                    recordImgLoadResult(strategy.instanceId,false,null);
+                    recordImgLoadResult(strategy.instanceId,false,e.toString());
                   }
                 });
       }

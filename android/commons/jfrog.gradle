@@ -9,7 +9,7 @@ repositories {
 
 def packageName = 'com.twl.qichechaoren'
 def artifactName = 'commons'
-def libraryVersion = "0.19.0.2.0"
+def libraryVersion = "0.20.0.1.1"
 
 publishing {
     publications {
@@ -24,7 +24,7 @@ publishing {
 }
 
 artifactory {
-    contextUrl = 'http://10.19.14.7:8081/artifactory'
+    contextUrl = 'http://172.16.3.240:8081/artifactory'
     publish {
         repository {
             repoKey = libraryVersion.endsWith('SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'

@@ -48,7 +48,7 @@ dependencies {
     compile project(':weex_sdk')
     //debugCompile project(path: ':weex_sdk', configuration: 'debug')
     //releaseCompile project(path: ':weex_sdk', configuration: 'release')
-    compile 'com.squareup.picasso:picasso:2.5.2'
+    compile 'com.squareup.picasso:picasso:2.71828'
     compile 'com.facebook.fresco:fresco:0.10.0'
     compile 'com.taobao.android.weex_inspection:protocol:1.1.4.1'
 

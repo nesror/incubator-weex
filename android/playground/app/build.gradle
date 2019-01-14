@@ -6,7 +6,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion project.compileSdkVersion
-    buildToolsVersion project.buildToolsVersion
 
     defaultConfig {
         applicationId "com.alibaba.weex"
@@ -90,17 +89,19 @@ dependencies {
     androidTestCompile 'com.android.support.test.uiautomator:uiautomator-v18:2.1.2'
     /*source dependency*/
 
-    debugCompile project(path: ':commons', configuration: 'debug')
-    releaseCompile project(path: ':commons', configuration: 'release')
+    compile project(path: ':commons')
+    //debugCompile project(path: ':commons', configuration: 'debug')
+    //releaseCompile project(path: ':commons', configuration: 'release')
 
-    debugCompile project(path: ':weex_sdk', configuration: 'debug')
-    releaseCompile project(path: ':weex_sdk', configuration: 'release')
+    compile project(path: ':weex_sdk')
+    //debugCompile project(path: ':weex_sdk', configuration: 'debug')
+    //releaseCompile project(path: ':weex_sdk', configuration: 'release')
 
     //https://github.com/weexteam/weex-analyzer-android
     //Weex-Analyzer provides several convenient tools such as Memory Monitor
     // to optimize your application. It's not available by default,you can
     // set WXAnalyzerDelegate#DEBUG==true to enable it
-    debugCompile 'com.taobao.android:weex_analyzer:0.1.0.5'
+    //debugCompile 'com.taobao.android:weex_analyzer:0.1.0.5'
 
 
     compile 'com.loopj.android:android-async-http:1.4.9@aar'

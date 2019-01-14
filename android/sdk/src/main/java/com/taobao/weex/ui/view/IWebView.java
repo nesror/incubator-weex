@@ -18,7 +18,9 @@
  */
 package com.taobao.weex.ui.view;
 
+import android.support.annotation.Nullable;
 import android.view.View;
+import android.webkit.WebView;
 
 import java.util.Map;
 
@@ -31,10 +33,16 @@ public interface IWebView {
     public void goBack();
     public void goForward();
     public void postMessage(Object msg);
+
+    int getWebContentHeight();
+
     public void setShowLoading(boolean shown);
     public void setOnErrorListener(OnErrorListener listener);
     public void setOnPageListener(OnPageListener listener);
     public void setOnMessageListener(OnMessageListener listener);
+
+    @Nullable
+    WebView getWebView();
 
     public interface OnErrorListener {
         public void onError(String type, Object message);

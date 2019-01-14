@@ -3,9 +3,12 @@ buildscript {
     repositories {
         mavenLocal()
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.0.0"
+
     }
 }
 
@@ -14,27 +17,36 @@ plugins {
 //    id "com.github.dcendents.android-maven" version "1.5"
 }
 
+repositories {
+    mavenLocal()
+    jcenter()
+    google()
+}
+
 subprojects {
     repositories {
         mavenLocal()
         jcenter()
-        maven {
-            url 'https://maven.google.com'
-        }
+        google()
     }
     buildscript {
+        repositories {
+            mavenLocal()
+            jcenter()
+            google()
+        }
         dependencies {
-            classpath 'com.android.tools.build:gradle:2.3.3'
+            classpath 'com.android.tools.build:gradle:3.0.1'
             classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.0'
             classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
         }
     }
     ext {
         compileSdkVersion=26
-        buildToolsVersion="26.0.3"
         minSdkVersion=14
+        appMinSdkVersion=15
         targetSdkVersion=26
-        supportLibVersion="26.0.2"
+        supportLibVersion="26.1.0"
         fastjsonLibVersion="1.1.46.android"
     }
 }

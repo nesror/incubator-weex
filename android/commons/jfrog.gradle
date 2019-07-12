@@ -1,0 +1,65 @@
+apply plugin: 'com.jfrog.artifactory'
+
+apply plugin: 'maven-publish'
+
+repositories {
+    jcenter()
+    maven { url 'https://oss.jfrog.org/libs-snapshot' }
+}
+
+def packageName = 'com.twl.qichechaoren'
+def artifactName = 'weex_commons'
+def libraryVersion = "0.26.2.0.0"
+
+publishing {
+    publications {
+        aar(MavenPublication) {
+            groupId packageName
+            artifactId artifactName
+            version = libraryVersion
+
+            artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+
+            pom.withXml {
+                def dependencies = asNode().appendNode('dependencies')
+                configurations.api.allDependencies.each {
+                    // 如果有compile fileTree()，group会为空，需要去除
+                    if (it.group != null && !it.group.contains("com.android.support")) {
+                        def dependency = dependencies.appendNode('dependency')
+                        dependency.appendNode('groupId', it.group)
+                        dependency.appendNode('artifactId', it.name)
+                        dependency.appendNode('version', it.version)
+                    }
+                }
+                configurations.implementation.allDependencies.each {
+                    // 如果有compile fileTree()，group会为空，需要去除
+                    if (it.group != null && !it.group.contains("com.android.support")) {
+                        def dependency = dependencies.appendNode('dependency')
+                        dependency.appendNode('groupId', it.group)
+                        dependency.appendNode('artifactId', it.name)
+                        dependency.appendNode('version', it.version)
+                    }
+                }
+            }
+        }
+    }
+}
+
+artifactory {
+    contextUrl = 'http://172.16.0.201:8081/artifactory'
+    publish {
+        repository {
+            repoKey = libraryVersion.endsWith('SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
+
+            username = "admin"
+            password = "password"
+        }
+        defaults {
+            publications('aar')
+            publishArtifacts = true
+
+            properties = ['qa.level': 'basic', 'dev.team': 'core']
+            publishPom = true
+        }
+    }
+}

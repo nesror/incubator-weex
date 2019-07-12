@@ -3,6 +3,7 @@ plugins {
 }
 
 apply plugin: 'com.android.library'
+apply from: "./jfrog.gradle"
 
 android {
 
@@ -46,7 +47,7 @@ dependencies {
     implementation "com.android.support:support-v4:${project.supportLibVersion}"
     implementation "com.android.support:appcompat-v7:${project.supportLibVersion}"
     // implementation project(':weex_sdk')
-    implementation 'com.squareup.picasso:picasso:2.5.2'
+    implementation 'com.squareup.picasso:picasso:2.71828'
     implementation 'com.facebook.fresco:fresco:0.10.0'
     implementation 'com.taobao.android.weex_inspection:protocol:1.1.4.1'
 

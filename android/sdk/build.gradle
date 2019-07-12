@@ -24,6 +24,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'checkstyle'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.github.dcendents.android-maven'
+apply from: "./jfrog.gradle"
 
 //if(!project.disableCov){
 //    apply plugin: 'com.vanniktech.android.junit.jacoco'

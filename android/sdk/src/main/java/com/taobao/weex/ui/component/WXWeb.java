@@ -102,12 +102,19 @@ public class WXWeb extends WXComponent {
 
             @Override
             public void onPageFinish(String url, boolean canGoBack, boolean canGoForward) {
+
                 if (getEvents().contains(Constants.Event.PAGEFINISH)) {
-                    Map<String, Object> params = new HashMap<>();
+                    final Map<String, Object> params = new HashMap<>();
                     params.put("url", url);
                     params.put("canGoBack", canGoBack);
                     params.put("canGoForward", canGoForward);
-                    fireEvent(Constants.Event.PAGEFINISH, params);
+                    mWebView.getWebView().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            params.put("contentHeight", mWebView.getWebContentHeight());
+                            fireEvent(Constants.Event.PAGEFINISH, params);
+                        }
+                    });
                 }
             }
         });

@@ -3,11 +3,11 @@ plugins {
 }
 
 apply plugin: 'com.android.library'
+apply from: "./jfrog.gradle"
 
 android {
 
     compileSdkVersion project.compileSdkVersion
-    buildToolsVersion project.buildToolsVersion
     resourcePrefix "weexcomm"
 
     defaultConfig {

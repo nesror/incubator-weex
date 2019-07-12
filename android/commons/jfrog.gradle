@@ -1,0 +1,43 @@
+apply plugin: 'com.jfrog.artifactory'
+
+apply plugin: 'maven-publish'
+
+repositories {
+    jcenter()
+    maven { url 'https://oss.jfrog.org/libs-snapshot' }
+}
+
+def packageName = 'com.twl.qichechaoren'
+def artifactName = 'commons'
+def libraryVersion = "0.20.0.1.1"
+
+publishing {
+    publications {
+        aar(MavenPublication) {
+            groupId packageName
+            artifactId artifactName
+            version = libraryVersion
+
+            artifact("$buildDir/outputs/aar/$artifactName-release.aar")
+        }
+    }
+}
+
+artifactory {
+    contextUrl = 'http://172.16.3.240:8081/artifactory'
+    publish {
+        repository {
+            repoKey = libraryVersion.endsWith('SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
+
+            username = "admin"
+            password = "password"
+        }
+        defaults {
+            publications('aar')
+            publishArtifacts = true
+
+            properties = ['qa.level': 'basic', 'dev.team': 'core']
+            publishPom = true
+        }
+    }
+}

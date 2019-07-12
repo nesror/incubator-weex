@@ -66,7 +66,7 @@ public class PicassoBasedDrawableLoader implements IDrawableLoader {
           }
 
           @Override
-          public void onBitmapFailed(Drawable errorDrawable) {
+          public void onBitmapFailed(Exception e, Drawable errorDrawable) {
 
           }
 
@@ -95,8 +95,7 @@ public class PicassoBasedDrawableLoader implements IDrawableLoader {
             return PixelFormat.UNKNOWN;
           }
         }
-        Picasso.
-                with(mContext).
+        Picasso.get().
                 load(temp).
                 resize(drawableStrategy.width, drawableStrategy.height).
                 onlyScaleDown().

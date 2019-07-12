@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.webkit.JavascriptInterface;
@@ -114,35 +115,35 @@ public class WXWebView implements IWebView {
 
     @Override
     public void loadUrl(String url) {
-        if(getWebView() == null)
+        if (getWebView() == null)
             return;
         getWebView().loadUrl(url);
     }
 
     @Override
     public void loadDataWithBaseURL(String source) {
-        if(getWebView() == null)
+        if (getWebView() == null)
             return;
         getWebView().loadDataWithBaseURL(mOrigin, source, "text/html", "utf-8", null);
     }
 
     @Override
     public void reload() {
-        if(getWebView() == null)
+        if (getWebView() == null)
             return;
         getWebView().reload();
     }
 
     @Override
     public void goBack() {
-        if(getWebView() == null)
+        if (getWebView() == null)
             return;
         getWebView().goBack();
     }
 
     @Override
     public void goForward() {
-        if(getWebView() == null)
+        if (getWebView() == null)
             return;
         getWebView().goForward();
     }
@@ -157,16 +158,34 @@ public class WXWebView implements IWebView {
             initData.put("data", msg);
             initData.put("origin", mOrigin);
             evaluateJS("javascript:(function () {"
-                + "var initData = " + initData.toString() + ";"
-                + "try {"
-                + "var event = new MessageEvent('message', initData);"
-                + "window.dispatchEvent(event);"
-                + "} catch (e) {}"
-                + "})();");
+                    + "var initData = " + initData.toString() + ";"
+                    + "try {"
+                    + "var event = new MessageEvent('message', initData);"
+                    + "window.dispatchEvent(event);"
+                    + "} catch (e) {}"
+                    + "})();");
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public int getWebContentHeight() {
+        //重新调整webview高度
+        int height = (int)(mWebView.getContentHeight() * mWebView.getScale());
+        if (height < 1) {
+            int measureWidth = View.MeasureSpec.makeMeasureSpec((1 << 30) - 1, View.MeasureSpec.AT_MOST);
+            int measureHeight = View.MeasureSpec.makeMeasureSpec((1 << 30) - 1, View.MeasureSpec.AT_MOST);
+            mWebView.measure(measureWidth, measureHeight);
+            height = mWebView.getMeasuredHeight();
+        }
+
+        Log.d("WXWebView", "measuredHeight=" + height);
+        return height;
+
+    }
+
+
 
     /*@Override
     public void setVisibility(int visibility) {
@@ -205,16 +224,21 @@ public class WXWebView implements IWebView {
         mWebView.setVisibility(shown ? View.VISIBLE : View.INVISIBLE);
     }
 
-    private @Nullable WebView getWebView() {
+    @Override
+    @Nullable
+    public WebView getWebView() {
         //TODO: remove this, duplicate with getView semantically.
         return mWebView;
     }
 
     private void initWebView(WebView wv) {
+
         WebSettings settings = wv.getSettings();
         settings.setJavaScriptEnabled(true);
+        settings.setAllowFileAccess(true);
         settings.setAppCacheEnabled(true);
         settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
         settings.setDomStorageEnabled(true);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
@@ -246,11 +270,11 @@ public class WXWebView implements IWebView {
                 }
                 if (mOnMessageListener != null) {
                     evaluateJS("javascript:(window.postMessage = function(message, targetOrigin) {"
-                        + "if (message == null || !targetOrigin) return;"
-                        + (DOWNGRADE_JS_INTERFACE
-                        ? "prompt('" + BRIDGE_NAME + "://postMessage?message=' + JSON.stringify(message) + '&targetOrigin=' + targetOrigin)"
-                        : BRIDGE_NAME + ".postMessage(JSON.stringify(message), targetOrigin);")
-                        + "})");
+                            + "if (message == null || !targetOrigin) return;"
+                            + (DOWNGRADE_JS_INTERFACE
+                            ? "prompt('" + BRIDGE_NAME + "://postMessage?message=' + JSON.stringify(message) + '&targetOrigin=' + targetOrigin)"
+                            : BRIDGE_NAME + ".postMessage(JSON.stringify(message), targetOrigin);")
+                            + "})");
                 }
             }
 

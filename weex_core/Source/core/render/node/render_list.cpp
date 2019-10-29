@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+#include <math.h>
 #include <cmath>
 #include <utility>
-#include <core/render/manager/render_manager.h>
 
-#include "base/ViewUtils.h"
+#include "core/common/view_utils.h"
 #include "core/css/constants_name.h"
+#include "core/render/manager/render_manager.h"
 #include "core/render/node/factory/render_type.h"
 #include "core/render/node/render_list.h"
 #include "core/render/node/render_object.h"
 #include "core/render/page/render_page.h"
+#include "core/render/node/factory/render_creator.h"
 
 namespace WeexCore {
 
@@ -113,8 +116,8 @@ void RenderList::PreCalculateCellWidth() {
 
     this->available_width_ =
         TakeStyleWidth() -
-        getWebPxByWidth(getPaddingLeft(), RenderManager::GetInstance()->viewport_width()) -
-        getWebPxByWidth(getPaddingRight(), RenderManager::GetInstance()->viewport_width());
+        getWebPxByWidth(getPaddingLeft(), RenderManager::GetInstance()->viewport_width(page_id())) -
+        getWebPxByWidth(getPaddingRight(), RenderManager::GetInstance()->viewport_width(page_id()));
 
     if (AUTO_VALUE == this->column_count_ &&
         AUTO_VALUE == this->column_width_) {
@@ -167,7 +170,7 @@ void RenderList::PreCalculateCellWidth() {
 
     this->is_pre_calculate_cell_width_ = true;
     if (TakeColumnCount() > 0 || TakeColumnWidth() > 0 ||
-        this->column_count_ > COLUMN_COUNT_NORMAL) {
+        this->column_count_ >= COLUMN_COUNT_NORMAL) {
       attrs->insert(std::pair<std::string, std::string>(
           COLUMN_COUNT, to_string(this->column_count_)));
       attrs->insert(std::pair<std::string, std::string>(
@@ -198,13 +201,17 @@ void RenderList::PreCalculateCellWidth() {
 
 std::string RenderList::CalculateSpanOffset() {
   std::string span_offsets;
-  if (this->left_gap_ > 0 || this->right_gap_ > 0) {
+  float divide = available_width_ / column_count_;
+  float item_start_pos = 0;
+  if (this->left_gap_ > 0 || this->right_gap_ > 0 || column_gap_ > 0) {
     span_offsets.append("[");
     for (int i = 0; i < this->column_count_; i++) {
-      float span_offset =
-          this->left_gap_ + i * ((this->column_width_ + this->column_gap_) -
-                                 (this->available_width_ + this->column_gap_) /
-                                     this->column_count_);
+      if (i == 0) {
+        item_start_pos += left_gap_;
+      } else {
+        item_start_pos += column_gap_ + column_width_;
+      }
+      float span_offset = item_start_pos - i * divide;
       span_offsets.append(to_string(span_offset));
       if (i != this->column_count_ - 1) {
         span_offsets.append(",");
@@ -217,19 +224,19 @@ std::string RenderList::CalculateSpanOffset() {
 
 float RenderList::TakeStyleWidth() {
   float width =
-      getWebPxByWidth(getLayoutWidth(), RenderManager::GetInstance()->viewport_width());
+      getWebPxByWidth(getLayoutWidth(), RenderManager::GetInstance()->viewport_width(page_id()));
   if (isnan(width) || width <= 0) {
     if (getParent() != nullptr) {
       width = getWebPxByWidth(getParent()->getLayoutWidth(),
-                              RenderManager::GetInstance()->viewport_width());
+                              RenderManager::GetInstance()->viewport_width(page_id()));
     }
     if (isnan(width) || width <= 0) {
       width = getWebPxByWidth(RenderObject::getStyleWidth(),
-                              RenderManager::GetInstance()->viewport_width());
+                              RenderManager::GetInstance()->viewport_width(page_id()));
     }
   }
   if (isnan(width) || width <= 0) {
-    width = RenderManager::GetInstance()->viewport_width();
+    width = RenderManager::GetInstance()->viewport_width(page_id());
   }
   return width;
 }
@@ -257,7 +264,7 @@ int RenderList::AddRenderObject(int index, RenderObject *child) {
 
 void RenderList::AddRenderObjectWidth(RenderObject *child,
                                       const bool updating) {
-  if (type() == kRenderWaterfall || type() == kRenderRecycleList) {
+  if ((RenderCreator::GetInstance()->IsAffineType(type(), kRenderWaterfall)) || type() == kRenderRecycleList) {
     if (child->type() == kRenderHeader || child->type() == kRenderFooter) {
       child->ApplyStyle(WIDTH, to_string(this->available_width_), updating);
     } else if (child->is_sticky()) {
@@ -269,7 +276,15 @@ void RenderList::AddRenderObjectWidth(RenderObject *child,
   }
 }
 
+
+void RenderList::AddAttr(std::string key, std::string value) {
+  MapInsertOrAssign(&mOriginalAttrs, key, value);
+  RenderObject::AddAttr(key, value);
+}
+
+
 void RenderList::UpdateAttr(std::string key, std::string value) {
+  MapInsertOrAssign(&mOriginalAttrs, key, value);
   RenderObject::UpdateAttr(key, value);
 
   if (!GetAttr(COLUMN_COUNT).empty() || !GetAttr(COLUMN_GAP).empty() ||
@@ -280,16 +295,26 @@ void RenderList::UpdateAttr(std::string key, std::string value) {
       return;
     }
 
-    int count = getChildCount();
+    Index count = getChildCount();
     for (Index i = 0; i < count; i++) {
       RenderObject *child = GetChild(i);
-      AddRenderObjectWidth(this, true);
+      AddRenderObjectWidth(child, true);
     }
   }
 }
 
+static const std::string GetMapAttr(std::map<std::string,std::string>* attrs,  const std::string &key) {
+  if (attrs == nullptr) return "";
+  std::map<std::string, std::string>::iterator iter = attrs->find(key);
+  if (iter != attrs->end()) {
+    return iter->second;
+  } else {
+    return "";
+  }
+}
+
 float RenderList::TakeColumnCount() {
-  std::string column_count = GetAttr(COLUMN_COUNT);
+  std::string column_count = GetMapAttr(&mOriginalAttrs, COLUMN_COUNT);
 
   if (column_count.empty() || column_count == AUTO) {
     return AUTO_VALUE;
@@ -301,7 +326,7 @@ float RenderList::TakeColumnCount() {
 }
 
 float RenderList::TakeColumnGap() {
-  std::string column_gap = GetAttr(COLUMN_GAP);
+  std::string column_gap = GetMapAttr(&mOriginalAttrs, COLUMN_GAP);
 
   if (column_gap.empty() || column_gap == NORMAL) {
     return COLUMN_GAP_NORMAL;
@@ -313,7 +338,7 @@ float RenderList::TakeColumnGap() {
 }
 
 float RenderList::TakeColumnWidth() {
-  std::string column_width = GetAttr(COLUMN_WIDTH);
+  std::string column_width = GetMapAttr(&mOriginalAttrs, COLUMN_WIDTH);
 
   if (column_width.empty() || column_width == AUTO) {
     return AUTO_VALUE;
@@ -325,7 +350,7 @@ float RenderList::TakeColumnWidth() {
 }
 
 float RenderList::TakeLeftGap() {
-  std::string left_gap = GetAttr(LEFT_GAP);
+  std::string left_gap =GetMapAttr(&mOriginalAttrs, LEFT_GAP);
 
   if (left_gap.empty() || left_gap == AUTO) {
     return 0;
@@ -336,7 +361,7 @@ float RenderList::TakeLeftGap() {
 }
 
 float RenderList::TakeRightGap() {
-  std::string right_gap = GetAttr(RIGHT_GAP);
+  std::string right_gap =GetMapAttr(&mOriginalAttrs, RIGHT_GAP);
 
   if (right_gap.empty() || right_gap == AUTO) {
     return 0;

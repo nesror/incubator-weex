@@ -32,7 +32,7 @@
 {
     if (self = [super init]) {
         _methodName = methodName;
-        _arguments = [NSMutableArray arrayWithArray:arguments];
+        _arguments = arguments ? [arguments copy] : @[];
         _instance = instance;
     }
     
@@ -102,11 +102,10 @@
         return nil;
     }
     
+    NSUInteger redundantArgumentCount = 0;
     NSArray *arguments = _arguments;
     if (signature.numberOfArguments - 2 < arguments.count) {
-        NSString *errorMessage = [NSString stringWithFormat:@"%@, the parameters in calling method [%@] and registered method [%@] are not consistent！", target, _methodName, NSStringFromSelector(selector)];
-        WX_MONITOR_FAIL(WXMTJSBridge, WX_ERR_INVOKE_NATIVE, errorMessage);
-        return nil;
+        redundantArgumentCount = arguments.count - (signature.numberOfArguments - 2); // JS provides more arguments than required.
     }
     
     NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
@@ -116,8 +115,8 @@
     void **freeList = NULL;
     
     NSMutableArray *blockArray = [NSMutableArray array];
-    WX_ALLOC_FLIST(freeList, arguments.count);
-    for (int i = 0; i < arguments.count; i ++ ) {
+    WX_ALLOC_FLIST(freeList, arguments.count - redundantArgumentCount);
+    for (int i = 0; i < arguments.count - redundantArgumentCount; i ++ ) {
         id obj = arguments[i];
         const char *parameterType = [signature getArgumentTypeAtIndex:i + 2];
         obj = [self parseArgument:obj parameterType:parameterType order:i];
@@ -125,8 +124,8 @@
         id argument;
         if (!strcmp(parameterType, blockType)) {
             // callback
-            argument = [^void(NSString *result, BOOL keepAlive) {
-                [[WXSDKManager bridgeMgr] callBack:instanceId funcId:(NSString *)obj params:result keepAlive:keepAlive];
+            argument = [^void(id result, BOOL keepAlive) {
+                [[WXSDKManager bridgeMgr] callBack:instanceId funcId:(NSString *)obj params:[WXUtility convertContainerToImmutable:result] keepAlive:keepAlive];
             } copy];
             
             // retain block
@@ -138,7 +137,7 @@
         }
     }
     [invocation retainArguments];
-    WX_FREE_FLIST(freeList, arguments.count);
+    WX_FREE_FLIST(freeList, arguments.count - redundantArgumentCount);
     
     return invocation;
 }

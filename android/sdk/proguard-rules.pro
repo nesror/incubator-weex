@@ -1,3 +1,22 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+
 # Add project specific ProGuard rules here.
 # By default, the flags in this file are appended to flags specified
 # in /Users/ouy/Library/AndroidStudio/sdk/tools/proguard/proguard-android.txt
@@ -15,8 +34,8 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
--keep class com.taobao.weex.bridge.** { *; }
--keep class com.taobao.weex.layout.** { *; }
--keep class com.taobao.weex.WXSDKEngine { *; }
--keep class com.taobao.weex.base.SystemMessageHandler { *; }
--dontwarn com.taobao.weex.bridge.**
+-keep class org.apache.weex.bridge.** { *; }
+-keep class org.apache.weex.layout.** { *; }
+-keep class org.apache.weex.WXSDKEngine { *; }
+-keep class org.apache.weex.base.SystemMessageHandler { *; }
+-dontwarn org.apache.weex.bridge.**

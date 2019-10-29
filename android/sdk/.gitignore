@@ -10,7 +10,14 @@ bin
 .settings
 gen
 *.iml
-lint.xml
 project.properties
 assets/main.js
+assets/weex-main-jsfm.js
+assets/weex-rax-api.js
 .externalNativeBuild
+
+/libs/
+/src/main/jniLibs
+
+/src/legacyRelease/
+proguard-rules-legacy.pro

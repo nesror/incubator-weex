@@ -19,6 +19,8 @@
 
 #import "WXModuleProtocol.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 /**  dimenValue  */
 #define BIZTYPE             @"bizType"
 #define PAGENAME            @"pageName"
@@ -65,19 +67,21 @@
 #define M_TIMER_NUM             @"timerCount"
 #define M_WRONG_IMG_NUM         @"imgSizeCount"
 #define M_INTERACTION_TIME      @"interactionTime"
-#define M_COMPONENT_FS_COUNT    @"fsComponentCount"
-#define M_COMPONENT_FS_TIME     @"fsComponentCreateTime"
-
+#define M_INTERACTION_ADD_COUNT    @"interactionViewAddCount"
+#define M_INTERACTION_LIMIT_ADD_COUNT    @"interactionViewAddLimitCount"
+#define M_NEW_FS_RENDER_TIME             @"newFsRenderTime"
 
 
 @protocol WXAppMonitorProtocol <WXModuleProtocol>
 
 - (void)commitAppMonitorArgs:(NSDictionary *)args;
 
-- (void)commitAppMonitorAlarm:(NSString *)pageName monitorPoint:(NSString *)monitorPoint success:(BOOL)success errorCode:(NSString *)errorCode errorMsg:(NSString *)errorMsg arg:(NSString *)arg;
+- (void)commitAppMonitorAlarm:(NSString *)pageName monitorPoint:(NSString *)monitorPoint success:(BOOL)success errorCode:(NSString *)errorCode errorMsg:(NSString *)errorMsg arg:(NSString * _Nullable)arg;
 
 @optional
 
-- (void)commitMonitorWithPage:(NSString *)pageName monitorPoint:(NSString *)monitorPoint args:(NSDictionary *)args;
+- (void)commitMonitorWithPage:(NSString *)pageName monitorPoint:(NSString *)monitorPoint args:(NSDictionary * _Nullable)args;
 
 @end
+
+NS_ASSUME_NONNULL_END

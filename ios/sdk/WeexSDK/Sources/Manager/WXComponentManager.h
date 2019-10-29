@@ -20,6 +20,8 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class WXBridgeMethod;
 @class WXSDKInstance;
 @class WXComponent;
@@ -65,14 +67,31 @@ void WXPerformBlockSyncOnComponentThread(void (^block)(void));
 ///--------------------------------------
 
 /**
- * @abstract create root of component tree
+ * @abstract create root component
  **/
-- (void)createRoot:(NSDictionary *)data;
+- (void)createBody:(NSString*)ref
+              type:(NSString*)type
+            styles:(NSDictionary*)styles
+        attributes:(NSDictionary*)attributes
+            events:(NSArray*)events
+      renderObject:(void*)renderObject;
 
 /**
- * @abstract add component
+ * @abstract add a component to its parent
  **/
-- (void)addComponent:(NSDictionary *)componentData toSupercomponent:(NSString *)superRef atIndex:(NSInteger)index appendingInTree:(BOOL)appendingInTree;
+- (void)addComponent:(NSString*)ref
+                type:(NSString*)type
+           parentRef:(NSString*)parentRef
+              styles:(NSDictionary*)styles
+          attributes:(NSDictionary*)attributes
+              events:(NSArray*)events
+               index:(NSInteger)index
+        renderObject:(void*)renderObject;
+
+/**
+ * @abstract move component
+ **/
+- (void)moveComponent:(NSString *)ref toSuper:(NSString *)superRef atIndex:(NSInteger)index;
 
 /**
  * @abstract remove component
@@ -80,9 +99,10 @@ void WXPerformBlockSyncOnComponentThread(void (^block)(void));
 - (void)removeComponent:(NSString *)ref;
 
 /**
- * @abstract move component
+ * @abstract notify that a component tree is built and trigger layout,
+    may be called several times rendering a page.
  **/
-- (void)moveComponent:(NSString *)ref toSuper:(NSString *)superRef atIndex:(NSInteger)index;
+- (void)appendTreeCreateFinish:(NSString*)ref;
 
 /**
  * @abstract return component for specific ref, must be called on component thread by calling WXPerformBlockOnComponentThread
@@ -99,7 +119,15 @@ void WXPerformBlockSyncOnComponentThread(void (^block)(void));
  */
 - (NSUInteger)numberOfComponents;
 
+/**
+ * @abstract add an existing component to references look-up map
+ */
 - (void)addComponent:(WXComponent *)component toIndexDictForRef:(NSString *)ref;
+
+/**
+ * @abstract remove an existing component to references look-up map
+ */
+- (void)removeComponentForRef:(NSString *)ref;
 
 ///--------------------------------------
 /// @name Updating
@@ -110,20 +138,35 @@ void WXPerformBlockSyncOnComponentThread(void (^block)(void));
  **/
 - (void)updateStyles:(NSDictionary *)styles forComponent:(NSString *)ref;
 
-///--------------------------------------
-/// @name Updating pseudo class
-///--------------------------------------
-
 /**
- * @abstract update  pseudo class styles
+ * @abstract update pseudo class styles
  **/
-
 - (void)updatePseudoClassStyles:(NSDictionary *)styles forComponent:(NSString *)ref;
 
 /**
  * @abstract update attributes
  **/
 - (void)updateAttributes:(NSDictionary *)attributes forComponent:(NSString *)ref;
+
+/**
+ * @abstract quick check that if a component has non transition properties
+ **/
+- (BOOL)isTransitionNoneOfComponent:(NSString*)ref; // for quick access
+
+/**
+ * @abstract check if component with @ref has any style in @styles which is animated
+ **/
+- (BOOL)hasTransitionPropertyInStyles:(NSDictionary*)styles forComponent:(NSString*)ref;
+
+/**
+ * @abstract layout a component with frame output by weex core layout engine
+ **/
+- (void)layoutComponent:(WXComponent*)component frame:(CGRect)frame isRTL:(BOOL)isRTL innerMainSize:(CGFloat)innerMainSize;
+
+/**
+ * @abstract layout a component on platform side
+ **/
+- (void)layoutComponent:(WXComponent*)component;
 
 /**
  * @abstract add event
@@ -160,6 +203,16 @@ void WXPerformBlockSyncOnComponentThread(void (^block)(void));
 - (void)updateFinish;
 
 /**
+ * @abstract called when all doms are created and layout finished
+ **/
+- (void)renderFinish;
+
+/**
+ * @abstract called when render failed
+ **/
+- (void)renderFailed:(NSError *)error;
+
+/**
  * @abstract unload
  **/
 - (void)unload;
@@ -187,9 +240,15 @@ void WXPerformBlockSyncOnComponentThread(void (^block)(void));
  */
 - (void)removeFixedComponent:(WXComponent *)fixComponent;
 
+/**
+ * @abstract add a task to UI thread
+ **/
 - (void)_addUITask:(void (^)(void))block;
 
-- (void)excutePrerenderUITask:(NSString *)url;
+/**
+ * @abstract execute a task to UI thread
+ **/
+- (void)executePrerenderUITask:(NSString *)url;
 
 /**
  * @param styles a NSDictionary value, styles which will resolve
@@ -198,4 +257,31 @@ void WXPerformBlockSyncOnComponentThread(void (^block)(void));
  * @abstract handleStyle will be add to a queue to be executed every frame, but handleStyleOnMainThread will switch to main thread and execute imediately, you can call this for your execution time sequence.
  */
 - (void)handleStyleOnMainThread:(NSDictionary*)styles forComponent:(WXComponent *)component isUpdateStyles:(BOOL)isUpdateStyles;
+
+///--------------------------------------
+/// @name Enumerating
+///--------------------------------------
+
+/**
+ * Enumerate components using breadth-first search algorithm,
+ must be called on component thread by calling WXPerformBlockOnComponentThread
+ */
+- (void)enumerateComponentsUsingBlock:(void (^)(WXComponent *, BOOL *stop))block;
+
+#pragma mark batch mark
+
+/**
+ a start native batch tag for a group of UI operations, company with performBatchEnd
+ @see performBatchEnd
+ */
+- (void)performBatchBegin;
+
+/**
+ an end native batch tag for a group of UI operations, company with performBatchBegin
+ @see performBatchBegin
+ */
+- (void)performBatchEnd;
+
 @end
+
+NS_ASSUME_NONNULL_END

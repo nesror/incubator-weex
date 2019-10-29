@@ -17,9 +17,13 @@
  * under the License.
  */
 #include "core_environment.h"
-#include "base/CoreConstants.h"
+#include <math.h>
 #include <stdlib.h>
-#include <base/ViewUtils.h>
+
+#include "base/core_constants.h"
+#include "base/log_defines.h"
+#include "base/log_defines.h"
+#include "core/common/view_utils.h"
 
 namespace WeexCore {
 
@@ -58,15 +62,15 @@ namespace WeexCore {
     return true;
   }
 
-  const float &WXCoreEnvironment::DeviceWidth() {
+  const float WXCoreEnvironment::DeviceWidth() {
     return mDeviceWidth;
   }
 
-  const float &WXCoreEnvironment::DeviceHeight() {
+  const float WXCoreEnvironment::DeviceHeight() {
     return mDeviceHeight;
   }
 
-  const std::string &WXCoreEnvironment::GetOption(const std::string &key) {
+  const std::string WXCoreEnvironment::GetOption(const std::string &key) {
     std::map<std::string, std::string>::iterator iter = mOptions.find(key);
     if (iter != mOptions.end()) {
       return iter->second;
@@ -75,7 +79,32 @@ namespace WeexCore {
     }
   }
 
+  const std::map<std::string, std::string>& WXCoreEnvironment::options() {
+      return mOptions;
+  }
+
   void WXCoreEnvironment::AddOption(std::string key, std::string value) {
     mOptions.insert(std::pair<std::string, std::string>(key, value));
+    if (key == "switchInteractionLog") {
+      mInteractionLogSwitch = "true" == value;
+    }
+  }
+
+  void WXCoreEnvironment::PutOption(std::string key, std::string value){
+    auto it = mOptions.find(key);
+    if(it == mOptions.end()){
+      AddOption(key, value);
+      return;
+    }else{
+      it->second = value;
+    }
+  }
+
+  void WXCoreEnvironment::setUseRunTimeApi(bool useRuntimeApi) {
+    this->mUseRuntimeApi = useRuntimeApi;
+  }
+
+  bool WXCoreEnvironment::isUseRunTimeApi(){
+    return mUseRuntimeApi;
   }
 }

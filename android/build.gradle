@@ -1,6 +1,24 @@
-
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 buildscript {
     repositories {
+<<<<<<< HEAD
         mavenLocal()
         jcenter()
         google()
@@ -23,8 +41,29 @@ repositories {
     google()
 }
 
+=======
+        google()
+        maven(){
+            url 'https://maven.aliyun.com/repository/google'
+        }
+        jcenter(){
+            url 'https://maven.aliyun.com/repository/jcenter'
+        }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.3.2'
+    }
+}
+
+>>>>>>> 25117b668ec4ef9323a97dd59ae27a2270a11c3a
 subprojects {
+    if(project.hasProperty('external_script')){
+        for(item in external_script.split()) {
+            apply from: item
+        }
+    }
     repositories {
+<<<<<<< HEAD
         mavenLocal()
         jcenter()
         google()
@@ -49,6 +88,51 @@ subprojects {
         supportLibVersion="26.1.0"
         fastjsonLibVersion="1.1.46.android"
     }
+=======
+        if(project.hasProperty('external_repositories')){
+            maven {
+                url external_repositories
+            }
+        }
+        google()
+        maven(){
+            url 'https://maven.aliyun.com/repository/google'
+        }
+        jcenter(){
+            url 'https://maven.aliyun.com/repository/jcenter'
+        }
+    }
+    buildscript {
+        dependencies {
+            classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+            classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+        }
+        repositories {
+            google()
+            maven(){
+                url 'https://maven.aliyun.com/repository/google'
+            }
+            jcenter(){
+                url 'https://maven.aliyun.com/repository/jcenter'
+            }
+        }
+    }
+}
+ext {
+    compileSdkVersion=28
+    minSdkVersion=14
+    targetSdkVersion=28
+    supportLibVersion="26.0.2"
+    fastjsonLibVersion="1.1.70.android"
+    //Default value for disableCov is false
+    disableCov = project.hasProperty("disableCov") && disableCov.equals("true")
+    useApachePackageName = project.hasProperty('apachePackageName') ? project.property('apachePackageName').toBoolean() : false
+    unbundlingJSC = project.hasProperty('unbundlingJSC') ? project.property('unbundlingJSC').toBoolean() : false
+    artifactName = project.hasProperty('artifactName') ? project.property('artifactName') : 'weex_sdk'
+    groupId = project.hasProperty('groupId') ? project.property('groupId') : 'com.taobao.android'
+    weexVersion = project.hasProperty('weexVersion') ? project.getProperty('weexVersion') : '0.28.0.1'
+    implementFromWeex = true
+>>>>>>> 25117b668ec4ef9323a97dd59ae27a2270a11c3a
 }
 
 //task clean(type: Delete) {

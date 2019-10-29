@@ -17,14 +17,8 @@
  * under the License.
  */
 
-/**
- *  def : use weex_flex_engin
- *  ndef: use yoga
- **/
-
-
 #import <Foundation/Foundation.h>
-#import "WXType.h"
+#import <WeexSDK/WXType.h>
 
 @class WXSDKInstance;
 
@@ -32,6 +26,11 @@ typedef enum : NSUInteger {
     WXDisplayTypeNone,
     WXDisplayTypeBlock
 } WXDisplayType;
+
+typedef enum : NSUInteger {
+    WXComponentViewCreatedCallback,
+    WXComponentUpdateStylesCallback
+} WXComponentCallbackType;
 
 /**
  * @abstract the component callback , result can be string or dictionary.
@@ -176,10 +175,25 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable CGSize (^)(CGSize constrainedSize))measureBlock;
 
 /**
+ *  The callback of the component
+ *
+ *  When the callbackType is WXComponentViewCreatedCallback, the result type is UIView.
+ *  When the callbackType is WXComponentUpdateStylesCallback, the result type is NSDictionary.
+ *
+ *  @return A block that takes component, callbackType and a result.
+ **/
+@property (nonatomic, copy) void (^componentCallback)(WXComponent *component, WXComponentCallbackType callbackType, id _Nullable result);
+
+/**
  * @abstract Called on main thread when the component has just laid out.
  */
 - (void)layoutDidFinish;
 
+/**
+ * @abstract Update component's CSS style values for external components.
+ *  Could be called in any thread and will be scheduled to component thread.
+ */
+- (void)updateLayoutStyles:(NSDictionary*)styles;
 
 ///--------------------------------------
 /// @name View Management
@@ -405,6 +419,14 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (UIImage *)endDrawContext:(CGContextRef)context;
 
+/**
+ * @abstract Return a shapelayer when compoent need border radius.（Especially video components）
+ *
+ * @discussion You can add this shadelayer to your view.layer attached to component.
+ *
+ */
+- (CAShapeLayer *)drawBorderRadiusMaskLayer:(CGRect)rect;
+
 ///--------------------------------------
 /// @name Data Binding
 ///--------------------------------------
@@ -414,6 +436,15 @@ NS_ASSUME_NONNULL_BEGIN
  * @parameter binding data to update
  */
 - (void)updateBindingData:(NSDictionary *)data;
+
+///--------------------------------------
+/// @name Heron
+///--------------------------------------
+
+/**
+ * @abstract Unload native view of embeded component in Heron mode.
+ */
+- (void)unloadNativeView;
 
 @end
 
@@ -438,7 +469,6 @@ typedef void(^WXDisplayCompletionBlock)(CALayer *layer, BOOL finished);
  */
 - (WXDisplayCompletionBlock)displayCompletionBlock DEPRECATED_MSG_ATTRIBUTE("use didFinishDrawingLayer: method instead.");
 
-
 @end
 
 @interface UIView (WXComponent)
@@ -456,3 +486,4 @@ typedef void(^WXDisplayCompletionBlock)(CALayer *layer, BOOL finished);
 @end
 
 NS_ASSUME_NONNULL_END
+

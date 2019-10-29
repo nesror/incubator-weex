@@ -25,7 +25,6 @@
 #import "WXBridgeManager.h"
 #import "WXSDKEngine.h"
 #import "WXUtility.h"
-#import "WXTracingManager.h"
 
 static NSString *const MSG_PRERENDER_INTERNAL_ERROR = @"internal_error";
 static NSString *const MSG_PRERENDER_SUCCESS = @"success";
@@ -297,12 +296,12 @@ static NSString *const MSG_PRERENDER_SUCCESS = @"success";
         }
         WXPerformBlockOnComponentThread(^{
             [task.instance.componentManager startComponentTasks];
-            [task.instance.componentManager excutePrerenderUITask:url];
+            [task.instance.componentManager executePrerenderUITask:url];
             task.instance.needPrerender = NO;
         });
-        WXPerformBlockOnBridgeThread(^(){
+        WXPerformBlockOnBridgeThreadForInstance(^{
             [WXPrerenderManager excuteModuleTasksForUrl:url];
-        });
+        }, task.instance.instanceId);
     }
 }
 

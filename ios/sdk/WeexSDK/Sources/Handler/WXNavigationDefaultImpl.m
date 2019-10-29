@@ -66,9 +66,9 @@
     }
     
     BOOL animated = YES;
-    NSString *obj = [[param objectForKey:@"animated"] lowercaseString];
-    if (obj && [obj isEqualToString:@"false"]) {
-        animated = NO;
+    id animatedArgument = [param objectForKey:@"animated"];
+    if (animatedArgument && [animatedArgument respondsToSelector:@selector(boolValue)]) {
+        animated = [animatedArgument boolValue];
     }
     
     WXBaseViewController *vc = [[WXBaseViewController alloc]initWithSourceURL:[NSURL URLWithString:param[@"url"]]];
@@ -284,7 +284,7 @@
             button.position = position;
             [button addTarget:self action:@selector(onClickBarButton:) forControlEvents:UIControlEventTouchUpInside];
             
-            [[self imageLoader] downloadImageWithURL:icon imageFrame:CGRectMake(0, 0, 25, 25) userInfo:nil completed:^(UIImage *image, NSError *error, BOOL finished) {
+            [[self imageLoader] downloadImageWithURL:icon imageFrame:CGRectMake(0, 0, 25, 25) userInfo:@{@"instanceId":self.weexInstance.instanceId} completed:^(UIImage *image, NSError *error, BOOL finished) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [button setBackgroundImage:image forState:UIControlStateNormal];
                     [button setBackgroundImage:image forState:UIControlStateHighlighted];

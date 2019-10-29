@@ -18,18 +18,30 @@
  */
 
 #import <Foundation/Foundation.h>
-#import "WXInvocationConfig.h"
+#import <WeexSDK/WXInvocationConfig.h>
+
+NS_ASSUME_NONNULL_BEGIN
 
 @interface WXComponentConfig : WXInvocationConfig
 
-@property (nonatomic, strong) NSDictionary *properties;
+@property (nonatomic, strong) NSDictionary * _Nullable properties;
 
-- (instancetype)initWithName:(NSString *)name class:(NSString *)clazz pros:(NSDictionary *)pros;
+- (instancetype)initWithName:(NSString *)name class:(NSString *)clazz pros:(NSDictionary * _Nullable)pros;
 
 @end
 
 
 @interface WXComponentFactory : NSObject
+
+/**
+ * @abstract Register an affine base type to weex core. So that all subclasses of clazz will use this type to render.
+ *  For example: WXNestedListComponent is a subclass of WXListComponent and uses type of 'nested-list'.
+ *  It should be rendered using RenderList in weexcore.
+ *
+ * @param typeName weex core type identifier
+ * @param clazz The WXComponent subclass to register
+ */
++ (void)registerBaseType:(NSString *)typeName withClass:(Class)clazz;
 
 /**
  * @abstract Register a component for a given name
@@ -38,7 +50,7 @@
  * @param clazz The WXComponent subclass to register
  * @param pros The component properties to register
  */
-+ (void)registerComponent:(NSString *)name withClass:(Class)clazz withPros:(NSDictionary *)pros;
++ (void)registerComponent:(NSString *)name withClass:(Class)clazz withPros:(NSDictionary * _Nullable)pros;
 
 /**
  * @abstract Register a list of components
@@ -48,6 +60,8 @@
 
 + (NSMutableDictionary *)componentMethodMapsWithName:(NSString *)name;
 + (NSMutableDictionary *)componentSelectorMapsWithName:(NSString *)name;
+
++ (SEL)methodWithComponentName:(NSString *)name withMethod:(NSString *)method isSync:(BOOL *)isSync;
 
 + (SEL)methodWithComponentName:(NSString *)name withMethod:(NSString *)method;
 
@@ -72,3 +86,5 @@
 
 
 @end
+
+NS_ASSUME_NONNULL_END

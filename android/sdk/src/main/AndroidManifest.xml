@@ -18,21 +18,6 @@ specific language governing permissions and limitations
 under the License.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.taobao.weex"
-          android:versionCode="1"
-          android:versionName="1.0">
-
-    <uses-sdk
-            android:minSdkVersion="14"
-            android:targetSdkVersion="21"/>
-
-    <application>
-        <receiver
-                android:name="com.taobao.weex.WXGlobalEventReceiver"
-                android:enabled="true"
-                android:exported="false">
-        </receiver>
-
-
-    </application>
+          package="org.apache.weex">
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 </manifest>

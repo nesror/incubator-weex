@@ -29,7 +29,7 @@
 #define JSON_OBJECT_MARK_CHAR '{'
 #define JSON_ARRAY_MARK_CHAR '['
 
-#define convert_render_object_to_long(render) ((jlong)((intptr_t)render))
+#define convert_render_object_to_long(render) ((long)((intptr_t)render))
 
 #define convert_long_to_render_object(ptr) ((RenderObject *)((intptr_t)ptr))
 
@@ -44,7 +44,8 @@ typedef enum StyleType {
   kTypeLayout,
   kTypeMargin,
   kTypePadding,
-  kTypeBorder
+  kTypeBorder,
+  kTypeInheritableLayout
 } StyleType;
 
 class RenderObject : public IRenderObject {
@@ -53,9 +54,15 @@ class RenderObject : public IRenderObject {
  public:
   void LayoutBeforeImpl();
 
+  void LayoutPlatformImpl();
+    
   void LayoutAfterImpl();
 
   void CopyFrom(RenderObject *src);
+
+  RenderObject* RichtextParent();
+
+  bool hasShadow(const RenderObject* shadow) const;
 
   void MapInsertOrAssign(std::map<std::string, std::string> *targetMap,
                          const std::string &key, const std::string &value);
@@ -77,18 +84,20 @@ class RenderObject : public IRenderObject {
  public:
   RenderObject();
 
-  ~RenderObject();
+  virtual ~RenderObject();
 
   void BindMeasureFunc();
 
   void OnLayoutBefore();
+    
+  void OnLayoutPlatform();
 
   void OnLayoutAfter(float width, float height);
 
   virtual StyleType ApplyStyle(const std::string &key, const std::string &value,
                                const bool updating);
 
-  void ApplyDefaultStyle();
+  void ApplyDefaultStyle(bool reserve);
 
   void ApplyDefaultAttr();
 
@@ -107,6 +116,8 @@ class RenderObject : public IRenderObject {
   virtual void UpdateAttr(std::string key, std::string value);
 
   virtual StyleType UpdateStyle(std::string key, std::string value);
+  
+  void MergeStyles(std::vector<std::pair<std::string, std::string>> *src);
 
   bool IsAppendTree();
 
@@ -114,9 +125,9 @@ class RenderObject : public IRenderObject {
 
   void RemoveRenderObject(RenderObject *child);
 
-  void AddAttr(std::string key, std::string value);
+  virtual void AddAttr(std::string key, std::string value);
 
-  StyleType AddStyle(std::string key, std::string value);
+  StyleType AddStyle(std::string key, std::string value, bool reserve);
 
   void AddEvent(std::string event);
 
@@ -128,6 +139,8 @@ class RenderObject : public IRenderObject {
   }
 
   inline RenderObject *parent_render() { return this->parent_render_; }
+
+  const std::vector<RenderObject*>& get_shadow_objects() const {return shadow_objects_;}
 
   inline std::map<std::string, std::string> *styles() const {
     return this->styles_;
@@ -145,13 +158,19 @@ class RenderObject : public IRenderObject {
 
   inline bool is_sticky() { return this->is_sticky_; }
 
+  bool is_richtext_child() const {return is_richtext_child_;}
+
+  void set_is_richtext_child(const bool is_richtext_child) {is_richtext_child_ = is_richtext_child;}
+
  private:
   RenderObject *parent_render_;
+  std::vector<RenderObject*> shadow_objects_;
   std::map<std::string, std::string> *styles_;
   std::map<std::string, std::string> *attributes_;
   std::set<std::string> *events_;
   bool is_root_render_;
   bool is_sticky_ = false;
+  bool is_richtext_child_ = false;
 };
 }  // namespace WeexCore
 #endif  // CORE_RENDER_NODE_RENDER_OBJECT_H_

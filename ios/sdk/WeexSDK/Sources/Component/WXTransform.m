@@ -177,7 +177,7 @@
     CATransform3D nativeTansform3D = CATransform3DIdentity;
     
     // CGFLOAT_MAX is not INF on 32-bit device
-    if(_perspective && _perspective != CGFLOAT_MAX && !isinf(_perspective)) {
+    if(_perspective && _perspective != CGFLOAT_MAX && !isinf(_perspective)) { //!OCLint
         nativeTansform3D.m34 = -1.0/_perspective;
     }
     if (!view || view.bounds.size.width <= 0 || view.bounds.size.height <= 0) {
@@ -245,12 +245,16 @@
         return;
     }
     
-    NSError *error = NULL;
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"(\\w+)\\((.+?)\\)"
-                                                                           options:NSRegularExpressionCaseInsensitive
-                                                                             error:&error];
+    static NSRegularExpression* parseRegex = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSError *error = NULL;
+        parseRegex = [NSRegularExpression regularExpressionWithPattern:@"(\\w+)\\((.+?)\\)"
+                                                               options:NSRegularExpressionCaseInsensitive
+                                                                 error:&error];
+    });
     
-    NSArray *matches = [regex matchesInString:cssValue options:0 range:NSMakeRange(0, cssValue.length)];
+    NSArray *matches = [parseRegex matchesInString:cssValue options:0 range:NSMakeRange(0, cssValue.length)];
     
     for (NSTextCheckingResult *match in matches) {
         NSString *name = [cssValue substringWithRange:[match rangeAtIndex:1]];
@@ -259,19 +263,9 @@
         SEL method = NSSelectorFromString([NSString stringWithFormat:@"parse%@:", [name capitalizedString]]);
         if ([self respondsToSelector:method]) {
             @try {
-                id<WXConfigCenterProtocol> configCenter = [WXSDKEngine handlerForProtocol:@protocol(WXConfigCenterProtocol)];
-                BOOL parseTransformIfWaitUntilDone = NO;
-                if ([configCenter respondsToSelector:@selector(configForKey:defaultValue:isDefault:)]) {
-                    parseTransformIfWaitUntilDone = [[configCenter configForKey:@"iOS_weex_ext_config.parseTransformIfWaitUntilDone" defaultValue:@(NO) isDefault:NULL] boolValue];
-                }
-                if (parseTransformIfWaitUntilDone) {
-                    [self performSelectorOnMainThread:method withObject:value waitUntilDone:YES];
-                }
-                else{
-                    IMP imp = [self methodForSelector:method];
-                    void (*func)(id, SEL,NSArray *) = (void *)imp;
-                    func(self, method,value);
-                }
+                IMP imp = [self methodForSelector:method];
+                void (*func)(id, SEL,NSArray *) = (void *)imp;
+                func(self, method,value);
             }
             @catch (NSException *exception) {
                 WXLogError(@"WXTransform exception:%@", [exception reason]);
@@ -375,7 +369,7 @@
     if ([value[0] hasSuffix:@"%"]) {
         translateX = [WXLength lengthWithFloat:x type:WXLengthTypePercent];
     } else {
-        x = WXPixelScale(x, self.weexInstance.pixelScaleFactor);
+        x = [WXConvert WXPixelType:value[0] scaleFactor:self.weexInstance.pixelScaleFactor];
         translateX = [WXLength lengthWithFloat:x type:WXLengthTypeFixed];
     }
     _translateX = translateX;
@@ -388,7 +382,7 @@
     if ([value[0] hasSuffix:@"%"]) {
         translateY = [WXLength lengthWithFloat:y type:WXLengthTypePercent];
     } else {
-        y = WXPixelScale(y, self.weexInstance.pixelScaleFactor);
+        y = [WXConvert WXPixelType:value[0] scaleFactor:self.weexInstance.pixelScaleFactor];
         translateY = [WXLength lengthWithFloat:y type:WXLengthTypeFixed];
     }
     _translateY = translateY;
@@ -407,12 +401,12 @@
 
 - (void)parseScalex:(NSArray *)value
 {
-    [self parseScale:@[value[0], @1]];
+	_scaleX = [value[0] doubleValue];
 }
 
 - (void)parseScaley:(NSArray *)value
 {
-    [self parseScale:@[@1, value[0]]];
+	_scaleY = [value[0] doubleValue];
 }
 
 // Angle in radians

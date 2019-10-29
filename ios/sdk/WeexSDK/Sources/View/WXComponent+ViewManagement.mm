@@ -24,7 +24,6 @@
 #import "WXView.h"
 #import "WXSDKInstance_private.h"
 #import "WXTransform.h"
-#import "WXTracingManager.h"
 #import "WXSDKManager.h"
 #import "WXComponent+Layout.h"
 
@@ -99,6 +98,17 @@ do {\
     if (subcomponent.displayType == WXDisplayTypeNone) {
         return;
     }
+    
+    if (_isViewTreeIgnored) {
+        // self not added to views, children also ignored.
+        subcomponent->_isViewTreeIgnored = YES;
+        return;
+    }
+    
+    if (subcomponent->_isViewTreeIgnored) {
+        // children not added to views, such as div in list, we do not create view.
+        return;
+    }
   
     WX_CHECK_COMPONENT_TYPE(self.componentType)
     if (subcomponent->_positionType == WXPositionTypeFixed) {
@@ -145,6 +155,9 @@ do {\
 - (void)viewDidLoad
 {
     WXAssertMainThread();
+    if (self.componentCallback) {
+        self.componentCallback(self, WXComponentViewCreatedCallback, _view);
+    }
 }
 
 - (void)viewWillUnload
@@ -161,7 +174,7 @@ do {\
 
 - (void)_initViewPropertyWithStyles:(NSDictionary *)styles
 {
-    _backgroundColor = styles[@"backgroundColor"] ? [WXConvert UIColor:styles[@"backgroundColor"]] : [UIColor clearColor];
+    self.styleBackgroundColor = styles[@"backgroundColor"] ? [WXConvert UIColor:styles[@"backgroundColor"]] : [UIColor clearColor];
     _backgroundImage = styles[@"backgroundImage"] ? [WXConvert NSString:styles[@"backgroundImage"]]: nil;
     _opacity = styles[@"opacity"] ? [WXConvert CGFloat:styles[@"opacity"]] : 1.0;
     _clipToBounds = styles[@"overflow"] ? [WXConvert WXClipType:styles[@"overflow"]] : NO;
@@ -175,11 +188,12 @@ do {\
         _lastBoxShadow = _boxShadow;
     }
 }
+
 - (void)_transitionUpdateViewProperty:(NSDictionary *)styles
 {
     WX_CHECK_COMPONENT_TYPE(self.componentType)
     if (styles[@"backgroundColor"]) {
-        _backgroundColor = [WXConvert UIColor:styles[@"backgroundColor"]];
+        self.styleBackgroundColor = [WXConvert UIColor:styles[@"backgroundColor"]];
     }
     if (styles[@"opacity"]) {
         _opacity = [WXConvert CGFloat:styles[@"opacity"]];
@@ -197,7 +211,7 @@ do {\
     }
     
     if (styles[@"backgroundColor"]) {
-        _backgroundColor = [WXConvert UIColor:styles[@"backgroundColor"]];
+        self.styleBackgroundColor = [WXConvert UIColor:styles[@"backgroundColor"]];
         [self setNeedsDisplay];
     }
     
@@ -229,12 +243,8 @@ do {\
         WXPerformBlockOnComponentThread(^{
             if (positionType == WXPositionTypeFixed) {
                 [self.weexInstance.componentManager addFixedComponent:self];
-                _isNeedJoinLayoutSystem = NO;
-                [self.supercomponent _recomputeCSSNodeChildren];
             } else if (_positionType == WXPositionTypeFixed) {
                 [self.weexInstance.componentManager removeFixedComponent:self];
-                _isNeedJoinLayoutSystem = YES;
-                [self.supercomponent _recomputeCSSNodeChildren];
             }
             
             _positionType = positionType;
@@ -255,19 +265,25 @@ do {\
         WXTransform* transform = [[WXTransform alloc] initWithCSSValue:[WXConvert NSString:styles[@"transform"]] origin:[WXConvert NSString:transformOrigin] instance:self.weexInstance];
         if (!CGRectEqualToRect(self.calculatedFrame, CGRectZero)) {
             [transform applyTransformForView:_view];
+            [self _adjustForRTL];
             [_layer setNeedsDisplay];
         }
         self.transform = transform;
-    }else if (styles[@"transformOrigin"]) {
+    } else if (styles[@"transformOrigin"]) {
         [_transform setTransformOrigin:[WXConvert NSString:styles[@"transformOrigin"]]];
         if (!CGRectEqualToRect(self.calculatedFrame, CGRectZero)) {
             [_transform applyTransformForView:_view];
+            [self _adjustForRTL];
             [_layer setNeedsDisplay];
         }
     }
+    // for RTL
+    if (styles[@"direction"]) {
+        [self _adjustForRTL];
+    }
 }
 
--(void)resetBorder:(NSArray *)styles
+- (void)resetBorder:(NSArray *)styles
 {
     WX_BOARD_RADIUS_RESET_ALL(borderRadius);
     WX_BOARD_RADIUS_RESET(borderTopLeftRadius);
@@ -288,10 +304,10 @@ do {\
     WX_BOARD_COLOR_RESET(borderBottomColor);
 }
 
--(void)_resetStyles:(NSArray *)styles
+- (void)_resetStyles:(NSArray *)styles
 {
     if (styles && [styles containsObject:@"backgroundColor"]) {
-        _backgroundColor = [UIColor clearColor];
+        self.styleBackgroundColor = [UIColor clearColor];
         [self setNeedsDisplay];
     }
     if (styles && [styles containsObject:@"boxShadow"]) {
@@ -300,7 +316,7 @@ do {\
         [self setNeedsDisplay];
     }
     if (styles && [styles containsObject:@"backgroundImage"]) {
-        _backgroundImage = @"linear-gradient(to left,rgba(255,255,255,0),rgba(255,255,255,0))"; // if backgroundImage is nil, give defalut color value.
+        _backgroundImage = nil;
         [self setGradientLayer];
     }
     
@@ -321,7 +337,7 @@ do {\
     
     [self _removeAllEvents];
     
-    if(self.ancestorScroller){
+    if (self.ancestorScroller) {
         [self.ancestorScroller removeStickyComponent:self];
         [self.ancestorScroller removeScrollToListener:self];
     }
@@ -337,6 +353,27 @@ do {\
     if (self->_isTemplate && self.attributes[@"@templateId"]) {
         [[WXSDKManager bridgeMgr] callComponentHook:self.weexInstance.instanceId componentId:self.attributes[@"@templateId"] type:@"lifecycle" hook:@"detach" args:nil competion:nil];
     }
+    _view = nil;
+    [_layer removeFromSuperlayer];
+    _layer = nil;
+    
+    [self viewDidUnload];
+}
+
+- (void)unloadNativeView
+{
+    WXAssertMainThread();
+    
+    [self viewWillUnload];
+    
+    _view.gestureRecognizers = nil;
+    
+    [self _removeAllEvents];
+    
+    if ([_view superview]) {
+        [_view removeFromSuperview];
+    }
+
     _view = nil;
     [_layer removeFromSuperlayer];
     _layer = nil;

@@ -17,9 +17,12 @@
  * under the License.
  */
 
+
 #import <Foundation/Foundation.h>
-#import "WXDefine.h"
-#import "WXSDKError.h"
+#import <WeexSDK/WXDefine.h>
+#import <WeexSDK/WXSDKError.h>
+
+NS_ASSUME_NONNULL_BEGIN
 
 @class WXSDKInstance;
 
@@ -49,10 +52,11 @@ typedef enum : NSUInteger {
     WXPTTimerNum,
     WXPTInteractionTime,
     WXPTWrongImgSize,
-    WXPTFsComponentCount,
-    WXPTFsComponentCreateTime,
+    WXPTInteractionAddCount,
+    WXPTInteractionLimitAddCount,
     WXPTComponentCount,
     WXPTComponentCreateTime,
+    WXPNewFSRenderTime,
     //end
     WXPTEnd
 } WXPerformanceTag;
@@ -94,17 +98,20 @@ NSError *error = [NSError errorWithDomain:WX_ERROR_DOMAIN \
 #define WX_MONITOR_INSTANCE_PERF_IS_RECORDED(tag, instance) [WXMonitor performancePoint:tag isRecordedWithInstance:instance]
 #define WX_MONITOR_INSTANCE_PERF_COMMIT(instance) [WXMonitor performanceFinish:instance]
 
+//DEPRECATED_ATTRIBUTE
 @interface WXMonitor : NSObject
 
-+ (void)performancePoint:(WXPerformanceTag)tag willStartWithInstance:(WXSDKInstance *)instance;
-+ (void)performancePoint:(WXPerformanceTag)tag didEndWithInstance:(WXSDKInstance *)instance;
-+ (void)performancePoint:(WXPerformanceTag)tag didSetValue:(double)value withInstance:(WXSDKInstance *)instance;
-+ (BOOL)performancePoint:(WXPerformanceTag)tag isRecordedWithInstance:(WXSDKInstance *)instance;
++ (void)performancePoint:(WXPerformanceTag)tag willStartWithInstance:(WXSDKInstance * _Nullable)instance;
++ (void)performancePoint:(WXPerformanceTag)tag didEndWithInstance:(WXSDKInstance * _Nullable)instance;
++ (void)performancePoint:(WXPerformanceTag)tag didSetValue:(double)value withInstance:(WXSDKInstance * _Nullable)instance;
++ (BOOL)performancePoint:(WXPerformanceTag)tag isRecordedWithInstance:(WXSDKInstance * _Nullable)instance;
 + (void)performanceFinish:(WXSDKInstance *)instance;
 
-+ (void)monitoringPointDidSuccess:(WXMonitorTag)tag onPage:(NSString *)pageName;
-+ (void)monitoringPoint:(WXMonitorTag)tag didFailWithError:(NSError *)error onPage:(NSString *)pageName;
++ (void)monitoringPointDidSuccess:(WXMonitorTag)tag onPage:(NSString * _Nullable)pageName;
++ (void)monitoringPoint:(WXMonitorTag)tag didFailWithError:(NSError * _Nullable)error onPage:(NSString * _Nullable)pageName;
 
-+ (void)performanceFinishWithState:(CommitState) state instance:(WXSDKInstance *)instance;
++ (void)performanceFinishWithState:(CommitState) state instance:(WXSDKInstance * _Nullable)instance;
 
 @end
+
+NS_ASSUME_NONNULL_END

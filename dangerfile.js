@@ -16,15 +16,64 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { schedule, danger, fail, warn, message, markdown } from "danger";
+// Removed import
 import fs from "fs";
 import path from 'path';
 import GitHubApi from 'github';
 import parseDiff from 'parse-diff';
 
+// check if pr submitted to master branch
+console.log("checkMasterBranch")
+const isMergeRefMaster = danger.github.pr.base.ref === 'master';
+if(!isMergeRefMaster){
+  warn("You'd better to submit PR to master branch as the development of Weex is on master branch.");
+}
+
+// match regex line by line
+function matchRegex(pr_body,regex){
+  const lines = pr_body.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if(lines[i].match(regex)){
+      return true;
+    }
+  }
+  return false;
+}
+
+var pr_body = danger.github.pr.body.toLowerCase();
+// Because Pr description template include the following line：
+// 1. Write the corresponding [documentation](https://github.com/apache/incubator-weex/blob/master/CONTRIBUTING.md#contribute-code-or-document)
+// so we should check the documentation below the ### checklist
+console.log("checkDocumentation");
+const index = pr_body.indexOf("checklist")
+const includeChecklist = (index!=-1)
+if(includeChecklist && !matchRegex(pr_body.substring(index),/documentation.*http/)){
+  const msg = "If you update the code, "+
+    "maybe you should update the documentation and add the documentation link in the PR description. \n" +
+    "here is the guide about how to contribute documentation: <a href='https://github.com/apache/incubator-weex/blob/master/CONTRIBUTING.md#contribute-code-or-document'>https://github.com/apache/incubator-weex/blob/master/CONTRIBUTING.md#contribute-code-or-document</a>";
+  warn(msg);
+}
+
+// check if pr contains a demo link
+console.log("checkDemo");
+if(!matchRegex(pr_body,/demo.*http/)){
+  const msg =  "If your PR is about fixing a bug excluding crash the code,"+
+    "you should add the demo link in the PR description. "+
+    "Demo link: <a href='http://dotwe.org/vue'>http://dotwe.org/vue</a>";
+  warn(msg);
+}
+
+// check if pr bind the github milestone
+console.log("checkMileStone");
+if(!danger.github.pr.milestone){
+  warn("Current pr not bind the milestone");
+}
+
 // Make sure there are changelog entries
-const hasChangelog = danger.git.modified_files.includes("changelog.md")
-if (!hasChangelog) { warn("No Changelog changes!") }
+const hasChangelog = danger.git.modified_files.includes("CHANGELOG.md")
+if (!hasChangelog) { 
+  warn(`No Changelog changes! - <i>Can you add a Changelog? To do so,append your changes to the changelog.md</i>`);
+}
 
 const jsFiles = danger.git.created_files.filter(path => path.endsWith("js"));
 
@@ -243,10 +292,15 @@ const ignoreCopyrightVerifyPath = [
   'test/js\-framework/case',
   'android/playground/app/src/main/assets',
   'android/sdk/assets',
+  'android/sdk/src/main/java/org/apache/weex/utils/WXDataStructureUtil.java',
   'ios/playground/bundlejs',
   'ios/sdk/WeexSDK/Resources',
   'ios/sdk/WeexSDK/Sources/Layout',
-  'ios/sdk/WeexSDK/dependency/SRWebSocket'
+  'ios/sdk/WeexSDK/dependency/SRWebSocket',
+  'weex_core/Source/include/JavaScriptCore',
+  'weex_core/Source/include/wtf',
+  'weex_core/Source/base/third_party/icu',
+  'weex_core/Source/base/base64/modp_base64'
 ]
 
 console.log('copyright_header_components')
@@ -259,6 +313,7 @@ filesToVerifySrcHeader.forEach(filepath => {
   const content = fs.readFileSync(filepath).toString();
   for (const line of copyright_header_components) {
     if (!content.match(new RegExp(line))) {
+      console.error("Code file "+ filepath +" does not have the copyright header.");
       fail("Code file "+ filepath +" does not have the copyright header.");
       return;
     }
@@ -471,7 +526,6 @@ function findBlameReviewers(fileToDeletedLinesMap, fileToNormalLinesMap, fileToB
     message("According to the blame info, we recommended " + names.join(' , ') + " to be the reviewers.")
   }
 }
-message('danger test finished.')
 /*
  * find reviewer end
  */

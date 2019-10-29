@@ -1,7 +1,11 @@
-## [Unreleased]
+# Abstract
+## Feature
+### WeexCore
+* Unified C++ log system of WeexCore.
 
-### Changed
-- [android]Move DOM and render to seperate Action Object
-- [android]Move Animation(animation module and css style) to seperate Action Object
-- [android]Reserve `transformOrigin`'s last time state.
-- [android]Refactor list-component sticky, use `List` instead of `Stack` to store sticky information.
+### Android
+* Upgrade targetsdk & compilesdk to 28
+* Change Android package name from `com.taobao.weex` to `org.apache.weex`, ref [link](https://github.com/apache/incubator-weex/tree/master/android#build-types)
+* Switch to BSD-Licensed [android-jsc](https://www.npmjs.com/package/jsc-android) as the default JavaScript Interpreter.
+
+## Main Bugfix

@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 #include "core/render/node/render_object.h"
-#include "base/ViewUtils.h"
+#include <math.h>
+
+#include "core/common/view_utils.h"
 #include "core/css/constants_name.h"
 #include "core/css/constants_value.h"
 #include "core/css/css_value_getter.h"
@@ -28,7 +31,7 @@
 
 namespace WeexCore {
 
-RenderObject::RenderObject() {
+RenderObject::RenderObject() : parent_render_(nullptr) {
   this->styles_ = new std::map<std::string, std::string>();
   this->attributes_ = new std::map<std::string, std::string>();
   this->events_ = new std::set<std::string>();
@@ -57,23 +60,34 @@ RenderObject::~RenderObject() {
     RenderObject *child = static_cast<RenderObject *>(*it);
     if (child != nullptr) {
       delete child;
-      child = nullptr;
     }
+  }
+
+  for (auto it : shadow_objects_) {
+      delete it;
   }
 }
 
-void RenderObject::ApplyDefaultStyle() {
+void RenderObject::ApplyDefaultStyle(bool reserve) {
   std::map<std::string, std::string> *style = GetDefaultStyle();
 
   if (style == nullptr) return;
 
   for (auto iter = style->cbegin(); iter != style->cend(); iter++)
-    AddStyle(iter->first, iter->second);
+    AddStyle(iter->first, iter->second, reserve);
 
   if (style != nullptr) {
     delete style;
-    style = nullptr;
   }
+}
+
+RenderObject* RenderObject::RichtextParent() {
+    if (parent_render_ && parent_render_->type() == "richtext") {
+        return parent_render_;
+    } else if (parent_render_) {
+        return parent_render_->RichtextParent();
+    }
+    return nullptr;
 }
 
 void RenderObject::ApplyDefaultAttr() {
@@ -87,38 +101,51 @@ void RenderObject::ApplyDefaultAttr() {
 
   if (attrs != nullptr) {
     delete attrs;
-    attrs = nullptr;
   }
 }
 
-WXCoreSize measureFunc_Impl(WXCoreLayoutNode *node, float width,
+static WXCoreSize measureFunc_Impl(WXCoreLayoutNode *node, float width,
                             MeasureMode widthMeasureMode, float height,
                             MeasureMode heightMeasureMode) {
   WXCoreSize size;
   size.height = 0;
   size.width = 0;
 
-  if (WeexCoreManager::getInstance()->GetMeasureFunctionAdapter() == nullptr)
-    return size;
-
-  return WeexCoreManager::getInstance()->GetMeasureFunctionAdapter()->Measure(
-      node, width, widthMeasureMode, height, heightMeasureMode);
+  if (!node->haveMeasureFunc()) return size;
+  return WeexCoreManager::Instance()
+      ->getPlatformBridge()
+      ->platform_side()
+      ->InvokeMeasureFunction(
+          static_cast<RenderObject *>(node)->page_id().c_str(),
+          reinterpret_cast<intptr_t>(node), width, widthMeasureMode, height,
+          heightMeasureMode);
 }
 
 void RenderObject::BindMeasureFunc() { setMeasureFunc(measureFunc_Impl); }
 
 void RenderObject::OnLayoutBefore() {
-  if (WeexCoreManager::getInstance()->GetMeasureFunctionAdapter() == nullptr)
-    return;
-  WeexCoreManager::getInstance()->GetMeasureFunctionAdapter()->LayoutBefore(
-      this);
+  if (!haveMeasureFunc()) return;
+  WeexCoreManager::Instance()
+      ->getPlatformBridge()
+      ->platform_side()
+      ->InvokeLayoutBefore(page_id().c_str(), reinterpret_cast<intptr_t>(this));
+}
+    
+void RenderObject::OnLayoutPlatform() {
+  if (!getNeedsPlatformDependentLayout()) return;
+  WeexCoreManager::Instance()
+    ->getPlatformBridge()
+    ->platform_side()
+    ->InvokeLayoutPlatform(page_id().c_str(), reinterpret_cast<intptr_t>(this));
 }
 
 void RenderObject::OnLayoutAfter(float width, float height) {
-  if (WeexCoreManager::getInstance()->GetMeasureFunctionAdapter() == nullptr)
-    return;
-  WeexCoreManager::getInstance()->GetMeasureFunctionAdapter()->LayoutAfter(
-      this, width, height);
+  if (!haveMeasureFunc()) return;
+  WeexCoreManager::Instance()
+      ->getPlatformBridge()
+      ->platform_side()
+      ->InvokeLayoutAfter(page_id().c_str(), reinterpret_cast<intptr_t>(this),
+                          width, height);
 }
 
 StyleType RenderObject::ApplyStyle(const std::string &key,
@@ -147,6 +174,13 @@ StyleType RenderObject::ApplyStyle(const std::string &key,
       }
     }
     return kTypeLayout;
+  } else if (key == DIRECTION) {
+    WeexCore::WXCoreDirection direction = GetWXCoreDirection(value);
+    if (direction ==  WeexCore::kDirectionInherit && this->is_root_render_ ) {
+        direction = WeexCore::kDirectionLTR;
+    } 
+    setDirection(direction, updating);
+    return kTypeInheritableLayout;
   } else if (key == FLEX_DIRECTION) {
     setFlexDirection(GetWXCoreFlexDirection(value), updating);
     return kTypeLayout;
@@ -305,9 +339,25 @@ const std::string RenderObject::GetAttr(const std::string &key) {
   }
 }
 
+bool RenderObject::hasShadow(const RenderObject* shadow) const {
+    if(std::find(shadow_objects_.begin(), shadow_objects_.end(), shadow) != shadow_objects_.end()){
+        return true;
+    }else{
+        return false;
+    }
+}
+
 int RenderObject::AddRenderObject(int index, RenderObject *child) {
   if (child == nullptr || index < -1) {
     return index;
+  }
+
+  if (type() == "richtext") {
+      if (!hasShadow(child)) {
+          shadow_objects_.push_back(child);
+          child->set_parent_render(this);
+      }
+      return index;
   }
 
   Index count = getChildCount();
@@ -347,7 +397,16 @@ bool RenderObject::UpdateStyleInternal(const std::string key,
     functor(fallback);
     ret = true;
   } else {
-    float fvalue = getFloatByViewport(value, RenderManager::GetInstance()->viewport_width());
+    float fvalue = getFloatByViewport(value,
+                                      RenderManager::GetInstance()->viewport_width(page_id()),
+                                      RenderManager::GetInstance()->DeviceWidth(page_id()),
+#if OS_IOS
+                                      // reduce a map search on iOS
+                                      false
+#else
+                                      RenderManager::GetInstance()->round_off_deviation(page_id())
+#endif
+                                      );
     if (!isnan(fvalue)) {
       functor(fvalue);
       ret = true;
@@ -365,6 +424,19 @@ void RenderObject::LayoutBeforeImpl() {
     RenderObject *child = static_cast<RenderObject *>(*it);
     if (child != nullptr) {
       child->LayoutBeforeImpl();
+    }
+  }
+}
+    
+void RenderObject::LayoutPlatformImpl() {
+  if (hasNewLayout()) {
+    OnLayoutPlatform();
+  }
+
+  for (auto it = ChildListIterBegin(); it != ChildListIterEnd(); it++) {
+    RenderObject *child = static_cast<RenderObject *>(*it);
+    if (child != nullptr) {
+      child->LayoutPlatformImpl();
     }
   }
 }
@@ -403,11 +475,11 @@ void RenderObject::MapInsertOrAssign(
 bool RenderObject::ViewInit() {
   return (!isnan(getStyleWidth()) && getStyleWidth() > 0) ||
          (is_root_render() && GetRenderPage() != nullptr &&
-             GetRenderPage()->is_render_container_width_wrap_content());
+          GetRenderPage()->is_render_container_width_wrap_content());
 }
 
 RenderPage *RenderObject::GetRenderPage() {
-  return RenderManager::GetInstance()->GetPage(page_id());
+  return static_cast<RenderPage*>(RenderManager::GetInstance()->GetPage(page_id()));
 }
 
 bool RenderObject::IsAppendTree() {
@@ -425,25 +497,47 @@ void RenderObject::UpdateAttr(std::string key, std::string value) {
 StyleType RenderObject::UpdateStyle(std::string key, std::string value) {
   return ApplyStyle(key, value, true);
 }
+  
+void RenderObject::MergeStyles(std::vector<std::pair<std::string, std::string>> *src) {
+  if (src) {
+    for (auto& p : *src) {
+      MapInsertOrAssign(styles_, p.first, p.second);
+    }
+  }
+}
 
 RenderObject *RenderObject::GetChild(const Index &index) {
   return static_cast<RenderObject *>(getChildAt(index));
 }
 
 void RenderObject::RemoveRenderObject(RenderObject *child) {
-  removeChild(child);
+    if (type() == "richtext") {
+        int index = 0;
+        for (auto it : shadow_objects_) {
+            if (it == child) {
+                shadow_objects_.erase(shadow_objects_.begin() + index);
+                return;
+            }
+            index++;
+        }
+    } else {
+          removeChild(child);
+    }
 }
 
 void RenderObject::AddAttr(std::string key, std::string value) {
   MapInsertOrAssign(this->attributes_, key, value);
 }
 
-StyleType RenderObject::AddStyle(std::string key, std::string value) {
+StyleType RenderObject::AddStyle(std::string key, std::string value, bool reserve) {
+  if (reserve) {
+    MapInsertOrAssign(styles_, key, value);
+  }
   return ApplyStyle(key, value, false);
 }
 
 void RenderObject::AddEvent(std::string event) {
-  if (this->events_ == nullptr || this->events_->empty()) {
+  if (this->events_ == nullptr) {
     this->events_ = new std::set<std::string>();
   }
   this->events_->insert(event);

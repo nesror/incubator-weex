@@ -134,9 +134,6 @@ WX_NUMBER_CONVERT(NSUInteger, unsignedIntegerValue)
             WXPerformBlockSyncOnMainThread(^{
                 safeAreaInsets = topInstance.rootView.safeAreaInsets;
             });
-            
-        } else {
-            // Fallback on earlier versions
         }
 #endif
         NSUInteger key = [directionArray indexOfObject:value];
@@ -222,8 +219,8 @@ WX_NUMBER_CONVERT(NSUInteger, unsignedIntegerValue)
     if([value isKindOfClass:[NSString class]]){
         // 2. check if is color keyword or transparent
         static NSDictionary *knownColors;
-        static dispatch_once_t onceToken;
-        dispatch_once(&onceToken, ^{
+        static dispatch_once_t onceTokenKnownColors;
+        dispatch_once(&onceTokenKnownColors, ^{
             knownColors = @{
                             // https://www.w3.org/TR/css3-color/#svg-color
                             @"aliceblue": @"#f0f8ff",
@@ -552,31 +549,31 @@ WX_NUMBER_CONVERT(NSUInteger, unsignedIntegerValue)
 {
     NSString *string = [WXConvert NSString:value];
     if (!string)
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0:UIFontWeightRegular;
+        return UIFontWeightRegular;
     else if ([string isEqualToString:@"normal"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0:UIFontWeightRegular;
+        return UIFontWeightRegular;
     else if ([string isEqualToString:@"bold"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0.4:UIFontWeightBold;
+        return UIFontWeightBold;
     else if ([string isEqualToString:@"100"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?-0.8:UIFontWeightUltraLight;
+        return UIFontWeightUltraLight;
     else if ([string isEqualToString:@"200"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?-0.6:UIFontWeightThin;
+        return UIFontWeightThin;
     else if ([string isEqualToString:@"300"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?-0.4:UIFontWeightLight;
+        return UIFontWeightLight;
     else if ([string isEqualToString:@"400"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0:UIFontWeightRegular;
+        return UIFontWeightRegular;
     else if ([string isEqualToString:@"500"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0.23:UIFontWeightMedium;
+        return UIFontWeightMedium;
     else if ([string isEqualToString:@"600"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0.3:UIFontWeightSemibold;
+        return UIFontWeightSemibold;
     else if ([string isEqualToString:@"700"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0.4:UIFontWeightBold;
+        return UIFontWeightBold;
     else if ([string isEqualToString:@"800"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0.56:UIFontWeightHeavy;
+        return UIFontWeightHeavy;
     else if ([string isEqualToString:@"900"])
-        return WX_SYS_VERSION_LESS_THAN(@"8.2")?0.62:UIFontWeightBlack;
+        return UIFontWeightBlack;
         
-    return WX_SYS_VERSION_LESS_THAN(@"8.2")?0:UIFontWeightRegular;
+    return UIFontWeightRegular;
 }
 
 + (WXTextDecoration)WXTextDecoration:(id)value

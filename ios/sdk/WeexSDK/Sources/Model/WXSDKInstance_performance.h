@@ -17,18 +17,22 @@
  * under the License.
  */
 
+//Deprecated, use @WXApmForInstance
+
 #import "WXSDKInstance.h"
+#import "WXImageComponent.h"
 
 @interface WXPerformance : NSObject
 
 
+@property (nonatomic, assign) double renderUnixTimeOrigin;
 @property (nonatomic, assign) double renderTimeOrigin;
 @property (nonatomic, assign) double jsCreateFinishTime;
 
 //firsrScreen call jsMethod totalTime
-@property (nonatomic, assign) double fsCallJsTime;
+@property (nonatomic, assign) double callJsTime;
 //firsrScreen call jsMethod totalNum
-@property (nonatomic, assign) double fsCallJsNum;
+@property (nonatomic, assign) double callJsNum;
 //firsrScreen call nativeMethod totalTime
 @property (nonatomic, assign) double fsCallNativeTime;
 //firsrScreen call nativeMethod totalNum
@@ -48,20 +52,33 @@
 //time of user could interace : firsrScreen view or async load veiew(net lazyload) are show)
 @property (nonatomic, assign) double interactionTime;
 
-//in firsrScreen ,create component count
-@property (nonatomic,assign) double fsComponentCount;
-//in firsrScreen ,create component time
-@property (nonatomic,assign) double fsComponentCreateTime;
+//in interactionTime ,add component count
+@property (nonatomic,assign) double interactionAddCount;
+@property (nonatomic,assign) double interactionLimitAddOpCount;
+
 //all componentCreate count in instance life
 @property (nonatomic,assign) double componentCount;
 //all componentCreate time in instance life
 @property (nonatomic,assign) double componentCreateTime;
+
+@property (nonatomic,assign) double viewCreateTime;
+
+@property (nonatomic,assign) double newFsRenderTime;
+@property (nonatomic,assign) long lastRealInteractionTime;
+//for performance record
+
+- (void)onViewLoad:(WXComponent *)targetComponent;
+- (void)recordComponentCreatePerformance:(double) diffTime forComponent:(WXComponent *)targetComponent;
+- (void)recordViewCreatePerformance:(double) diffTime;
+- (void)onInstanceRenderSuccess:(WXSDKInstance*) instance;
+
 @end
 
 
 @interface WXSDKInstance ()
 
 @property (nonatomic, assign) BOOL isJSCreateFinish;
+//Deprecated, use @WXApmForInstance
 @property (nonatomic,strong) WXPerformance* performance;
 
 @end

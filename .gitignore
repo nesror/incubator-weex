@@ -47,6 +47,14 @@ android/playground/app/gradlew.bat
 android/playground/app/gradle/wrapper/gradle-wrapper.jar
 android/playground/app/gradle/wrapper/gradle-wrapper.properties
 android/sdk/.externalNativeBuild/ndkBuild/
+android/HeronAndroid/.externalNativeBuild/
 
 # release
+apache-weex-incubating-*
 apache_release_temp
+RELEASE_NOTE.md
+RELEASE_AUDIT.LOG
+
+android/commons/bin/
+android/playground/app/bin/
+weex_core/test/out/

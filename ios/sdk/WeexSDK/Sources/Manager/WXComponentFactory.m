@@ -20,8 +20,20 @@
 #import "WXComponentFactory.h"
 #import "WXAssert.h"
 #import "WXLog.h"
-
+#import "WXCoreBridge.h"
+#import "WXComponent.h"
 #import <objc/runtime.h>
+
+@interface WXComponentBaseType : NSObject
+
+@property (nonatomic, strong) NSString* type;
+@property (nonatomic, strong) Class clazz;
+
+@end
+
+@implementation WXComponentBaseType
+
+@end
 
 @implementation WXComponentConfig
 
@@ -46,6 +58,7 @@
 
 @implementation WXComponentFactory
 {
+    NSMutableArray<WXComponentBaseType*> *_baseTypes;
     NSMutableDictionary *_componentConfigs;
     NSLock *_configLock;
 }
@@ -64,6 +77,7 @@
 - (instancetype)init
 {
     if(self = [super init]){
+        _baseTypes = [NSMutableArray array];
         _componentConfigs = [NSMutableDictionary dictionary];
         _configLock = [[NSLock alloc] init];
     }
@@ -87,6 +101,11 @@
     return [[self sharedInstance] configWithComponentName:name];
 }
 
++ (void)registerBaseType:(NSString *)typeName withClass:(Class)clazz
+{
+    [[self sharedInstance] registerBaseType:typeName withClass:clazz];
+}
+
 + (void)registerComponent:(NSString *)name withClass:(Class)clazz withPros:(NSDictionary *)pros
 {
     [[self sharedInstance] registerComponent:name withClass:clazz withPros:pros];
@@ -106,9 +125,13 @@
     return [[self sharedInstance] getComponentConfigs];
 }
 
-+ (SEL)methodWithComponentName:(NSString *)name withMethod:(NSString *)method
++ (SEL)methodWithComponentName:(NSString *)name withMethod:(NSString *)method {
+    return [[self sharedInstance] _methodWithComponetName:name withMethod:method isSync:NULL];
+}
+
++ (SEL)methodWithComponentName:(NSString *)name withMethod:(NSString *)method isSync:(BOOL *)isSync
 {
-    return [[self sharedInstance] _methodWithComponetName:name withMethod:method];
+    return [[self sharedInstance] _methodWithComponetName:name withMethod:method isSync:isSync];
 }
 
 + (NSMutableDictionary *)componentMethodMapsWithName:(NSString *)name
@@ -136,6 +159,7 @@
         [methods addObject:mKey];
     };
     [config.asyncMethods enumerateKeysAndObjectsUsingBlock:mBlock];
+    [config.syncMethods enumerateKeysAndObjectsUsingBlock:mBlock];
     [_configLock unlock];
     
     return dict;
@@ -154,28 +178,33 @@
         [methods addObject:mObj];
     };
     [config.asyncMethods enumerateKeysAndObjectsUsingBlock:mBlock];
+    [config.syncMethods enumerateKeysAndObjectsUsingBlock:mBlock];
     [_configLock unlock];
     
     return dict;
 }
 
-- (SEL)_methodWithComponetName:(NSString *)name withMethod:(NSString *)method
+- (SEL)_methodWithComponetName:(NSString *)name withMethod:(NSString *)method isSync:(BOOL *)isSync
 {
     WXAssert(name && method, @"Fail to find selector with module name and method, please check if the parameters are correct ！");
     
     NSString *selStr = nil; SEL selector = nil;
     WXComponentConfig *config = nil;
-    
     [_configLock lock];
     config = [_componentConfigs objectForKey:name];
     if (config.asyncMethods) {
         selStr = [config.asyncMethods objectForKey:method];
     }
+    if (isSync && !selStr && config.syncMethods) {
+        selStr = [config.syncMethods objectForKey:method];
+        if (selStr.length > 0) {
+            *isSync = YES;
+        }
+    }
     if (selStr) {
         selector = NSSelectorFromString(selStr);
     }
     [_configLock unlock];
-    
     return selector;
 }
 
@@ -214,6 +243,38 @@
     return config;
 }
 
+- (void)registerBaseType:(NSString *)typeName withClass:(Class)clazz
+{
+    if ([typeName length] > 0 && clazz != Nil) {
+        WXComponentBaseType* typePair = [[WXComponentBaseType alloc] init];
+        typePair.type = typeName;
+        typePair.clazz = clazz;
+        [_baseTypes addObject:typePair];
+    }
+}
+
+- (void)registerAffineType:(NSString *)typeName withClass:(Class)clazz
+{
+    // iterates super classes of clazz and check if any super class matches registerd base types
+    if ([_baseTypes count] > 0 && [typeName length] > 0 && clazz != Nil) {
+        Class supercls = [clazz superclass];
+        while (supercls) {
+            if (supercls == [WXComponent class]) {
+                break;
+            }
+            
+            for (WXComponentBaseType* typePair in _baseTypes) {
+                if (supercls == typePair.clazz) {
+                    WXLogInfo(@"Type '%@' is registerd as affine type of '%@' because '%@' is subclass of '%@'.", typeName, typePair.type, clazz, supercls);
+                    [WXCoreBridge registerComponentAffineType:typeName asType:typePair.type];
+                    return; // done, use the first found affine type
+                }
+            }
+            supercls = [supercls superclass];
+        }
+    }
+}
+
 - (void)registerComponent:(NSString *)name withClass:(Class)clazz withPros:(NSDictionary *)pros
 {
     WXAssert(name && clazz, @"name or clazz must not be nil for registering component.");
@@ -230,7 +291,7 @@
     config = [[WXComponentConfig alloc] initWithName:name class:NSStringFromClass(clazz) pros:pros];
     [_componentConfigs setValue:config forKey:name];
     [config registerMethods];
-    
+    [self registerAffineType:name withClass:clazz];
     [_configLock unlock];
 }
 
@@ -248,6 +309,7 @@
         if(config){
             [_componentConfigs setValue:config forKey:name];
             [config registerMethods];
+            [self registerAffineType:name withClass:NSClassFromString(clazz)];
         }
     }
     [_configLock unlock];

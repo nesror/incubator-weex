@@ -32,6 +32,7 @@
 #import <objc/runtime.h>
 #import <UIKit/UIGestureRecognizerSubclass.h>
 #import "WXComponent+PseudoClassManagement.h"
+#import "WXCoreBridge.h"
 
 #pragma clang diagnostic ignored "-Wobjc-protocol-method-implementation"
 
@@ -107,9 +108,6 @@
 - (instancetype) init
 {
     self = [super init];
-    if (self) {
-        
-    }
     return self;
 }
 
@@ -152,11 +150,12 @@
     if (params) {
         [dict addEntriesFromDictionary:params];
     }
-    WXRecycleListComponent * recyleListComponent  = (WXRecycleListComponent*)[self getRecycleListComponent];
+    WXRecycleListComponent *recyleListComponent  = (WXRecycleListComponent*)[self getRecycleListComponent];
     if (recyleListComponent) {
-        NSIndexPath * indexPath = [((UICollectionView*)recyleListComponent.view) indexPathForItemAtPoint:[self.view.superview
+        NSIndexPath *indexPath = [((UICollectionView*)recyleListComponent.view) indexPathForItemAtPoint:[self.view.superview
                                                                                                           convertPoint:self.view.center toView:recyleListComponent.view]];
-        NSString * virtualComponentId = [recyleListComponent.dataManager virtualComponentIdWithIndexPath:indexPath];
+        NSString *templateId = [self recursiveFindTemplateIdWithComponent:self];
+        NSString *virtualComponentId = [recyleListComponent.dataManager virtualComponentIdWithIndexPath:indexPath templateId:templateId];
         if (virtualComponentId) {
             dict[@"componentId"] = virtualComponentId;
         }
@@ -164,8 +163,21 @@
     
     NSArray *handlerArguments = [self _paramsForEvent:eventName];
     NSString *ref = _templateComponent ? _templateComponent.ref  : self.ref;
-    
     [[WXSDKManager bridgeMgr] fireEvent:self.weexInstance.instanceId ref:ref type:eventName params:dict domChanges:domChanges handlerArguments:handlerArguments];
+}
+
+- (NSString *)recursiveFindTemplateIdWithComponent:(WXComponent *)component
+{
+    if (!component) {
+        return nil;
+    }
+    if ([component isKindOfClass:NSClassFromString(@"WXCellSlotComponent")]) {
+        return nil;
+    }
+    if (component.attributes[@"@templateId"]) {
+        return component.attributes[@"@templateId"];
+    }
+    return [self recursiveFindTemplateIdWithComponent:component.supercomponent];
 }
 
 - (void)addEvent:(NSString *)addEventName
@@ -180,14 +192,23 @@
 
 #pragma mark Add & Remove Event
 
-
 #define WX_ADD_EVENT(eventName, addSelector) \
 if ([addEventName isEqualToString:@#eventName]) {\
     [self addSelector];\
 }
 
+#define WX_ADD_EVENTS(eventName1,eventName2, addSelector) \
+if ([addEventName isEqualToString:@#eventName1]||[addEventName isEqualToString:@#eventName2]) {\
+    [self addSelector:addEventName];\
+}
+
 #define WX_REMOVE_EVENT(eventName, removeSelector) \
 if ([removeEventName isEqualToString:@#eventName]) {\
+    [self removeSelector];\
+}
+
+#define WX_REMOVE_EVENTS(eventName1,eventName2, removeSelector) \
+if ([removeEventName isEqualToString:@#eventName1]||[removeEventName isEqualToString:@#eventName2]) {\
     [self removeSelector];\
 }
 
@@ -232,7 +253,7 @@ if ([removeEventName isEqualToString:@#eventName]) {\
     WX_ADD_EVENT(touchcancel, addTouchCancelEvent)
     WX_ADD_EVENT(accessibilityMagicTap, addAccessibilityMagicTapEvent)
     
-    WX_ADD_EVENT(stopPropagation, addStopPropagationEvent)
+    WX_ADD_EVENTS(stopPropagation, stoppropagation, addStopPropagationEvent)
     
     if(_isListenPseudoTouch) {
         self.touchGesture.listenPseudoTouch = YES;
@@ -263,8 +284,8 @@ if ([removeEventName isEqualToString:@#eventName]) {\
     WX_REMOVE_EVENT(touchcancel, removeTouchCancelEvent)
     WX_REMOVE_EVENT(accessibilityMagicTap, removeAccessibilityMagicTapEvent)
     
-    WX_REMOVE_EVENT(stopPropagation, removeStopPropagationEvent)
-    
+    WX_REMOVE_EVENTS(stoppropagation,stopPropagation, removeStopPropagationEvent)
+
     if(_isListenPseudoTouch) {
         self.touchGesture.listenPseudoTouch = NO;
     }
@@ -288,7 +309,14 @@ if ([removeEventName isEqualToString:@#eventName]) {\
     [self removeTouchCancelEvent];
     [self removeSwipeEvent];
     [self removePseudoTouchEvent];
+}
 
+- (void)_collectSubcomponents:(NSMutableArray *)components
+{
+    for (WXComponent* c in _subcomponents) {
+        [components addObject:c];
+        [c _collectSubcomponents:components];
+    }
 }
 
 #pragma mark - Appear & Disappear
@@ -337,9 +365,10 @@ if ([removeEventName isEqualToString:@#eventName]) {\
 
 #pragma mark - StopPropagation
 
-- (void)addStopPropagationEvent
+- (void)addStopPropagationEvent:(NSString *)stopPropagationName
 {
     _listenStopPropagation = YES;
+    _stopPropagationName = stopPropagationName;
     self.touchGesture.listenTouchMove = YES;
 }
 
@@ -356,6 +385,7 @@ if ([removeEventName isEqualToString:@#eventName]) {\
     if (!_tapGesture) {
         _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onClick:)];
         _tapGesture.delegate = self;
+        _tapGesture.cancelsTouchesInView = _cancelsTouchesInView;
         [self.view addGestureRecognizer:_tapGesture];
     }
 }
@@ -373,8 +403,6 @@ if ([removeEventName isEqualToString:@#eventName]) {\
             [_tapGesture removeTarget:self action:@selector(onClick:)];
         }@catch(NSException *exception) {
             WXLog(@"%@", exception);
-        } @finally {
-            
         }
         _tapGesture = nil;
     }
@@ -456,8 +484,6 @@ if ([removeEventName isEqualToString:@#eventName]) {\
         }
     }@catch(NSException *exception) {
         WXLog(@"%@", exception);
-    }@finally {
-        
     }
     _swipeGestures = nil;
 }
@@ -519,8 +545,6 @@ if ([removeEventName isEqualToString:@#eventName]) {\
             [_longPressGesture removeTarget:self action:@selector(onLongPress:)];
         }@catch(NSException * exception) {
             WXLog(@"%@", exception);
-        }@finally {
-            
         }
         _longPressGesture = nil;
     }
@@ -622,7 +646,7 @@ if ([removeEventName isEqualToString:@#eventName]) {\
         [self fireEvent:@"horizontalpan" params:@{@"state":state, @"changedTouches":resultTouch ? @[resultTouch] : @[]}];
     }
         
-    if (_listenVerticalPan && (gesture.state != UIGestureRecognizerStateBegan || fabs(translation.y) > fabs(translation.x))) {
+    if (_listenVerticalPan && (gesture.state != UIGestureRecognizerStateBegan || fabs(translation.y) >= fabs(translation.x))) {
         [self fireEvent:@"verticalpan" params:@{@"state":state, @"changedTouches":resultTouch ? @[resultTouch] : @[]}];
     }
         
@@ -679,8 +703,6 @@ if ([removeEventName isEqualToString:@#eventName]) {\
             [_panGesture removeTarget:self action:@selector(onPan:)];
         }@catch(NSException * exception) {
             WXLog(@"%@", exception);
-        }@finally {
-            
         }
         _panGesture = nil;
     }
@@ -778,8 +800,12 @@ if ([removeEventName isEqualToString:@#eventName]) {\
             else{
                 touchState = @"end";
             }
-            BOOL stopPropagation = [[WXEventManager sharedManager]stopPropagation:self.weexInstance.instanceId ref:ref type:@"stopPropagation" params:@{@"changedTouches":resultTouch ? @[resultTouch] : @[],@"action":touchState}];
+            BOOL stopPropagation = [[WXEventManager sharedManager]stopPropagation:self.weexInstance.instanceId ref:ref type:_stopPropagationName params:@{@"changedTouches":resultTouch ? @[resultTouch] : @[],@"action":touchState}];
             touch.wx_stopPropagation = stopPropagation ? @1 : @0;
+            
+            //only custom event on custom component will make not receive touch
+            //you can use custom-event="yes" to enable this feature
+            return _customEvent ? !stopPropagation : YES;
         }
     }
     return YES;
@@ -822,6 +848,20 @@ if ([removeEventName isEqualToString:@#eventName]) {\
     return NO;
 }
 
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+    if ([gestureRecognizer isKindOfClass:[UITapGestureRecognizer class]] &&
+        [otherGestureRecognizer isKindOfClass:[UIPanGestureRecognizer class]]) {
+        if (otherGestureRecognizer.state != UIGestureRecognizerStateFailed) {
+            if ([gestureRecognizer view].wx_component != nil && [otherGestureRecognizer view].wx_component != nil) {
+                return YES;
+            }
+        }
+    }
+    
+    return NO;
+}
+
 #pragma mark - Utils
 
 - (NSDictionary *)touchResultWithScreenLocation:(CGPoint)screenLocation pageLocation:(CGPoint)pageLocation identifier:(NSNumber *)identifier
@@ -859,7 +899,7 @@ if ([removeEventName isEqualToString:@#eventName]) {\
 
 - (instancetype)initWithTarget:(id)target action:(SEL)action
 {
-    return [self initWithComponent:nil];;
+    return [self initWithComponent:nil];
 }
 
 - (instancetype)initWithComponent:(WXComponent *)component
@@ -929,29 +969,48 @@ if ([removeEventName isEqualToString:@#eventName]) {\
 
 - (void)fireTouchEvent:(NSString *)eventName withTouches:(NSSet<UITouch *> *)touches
 {
+    if (_component == nil) {
+        return;
+    }
+    
     NSMutableArray *resultTouches = [NSMutableArray new];
+    
+    CGPoint accmOffset = CGPointZero;
+    UIView* rootView = _component.weexInstance.rootView;
+//    UIView* view = self.view;
+//    while (view && view != rootView) {
+//        if ([view isKindOfClass:[UIScrollView class]]) {
+//            CGPoint offset = ((UIScrollView*)view).contentOffset;
+//            accmOffset.x += offset.x;
+//            accmOffset.y += offset.y;
+//        }
+//        view = view.superview;
+//    }
     
     for (UITouch *touch in touches) {
         CGPoint screenLocation = [touch locationInView:touch.window];
-        CGPoint pageLocation = [touch locationInView:_component.weexInstance.rootView];
+        CGPoint pageLocation = [touch locationInView:rootView];
+        pageLocation.x += accmOffset.x;
+        pageLocation.y += accmOffset.y;
+      
         if (!touch.wx_identifier) {
             touch.wx_identifier = @(_touchIdentifier++);
         }
         NSDictionary *resultTouch = [_component touchResultWithScreenLocation:screenLocation pageLocation:pageLocation identifier:touch.wx_identifier];
         NSMutableDictionary * mutableResultTouch = [resultTouch mutableCopy];
         
-        if (WX_SYS_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0")) {
-            float value = touch.force*60;
-            float maxValue = touch.maximumPossibleForce*60;
-            if (touch.maximumPossibleForce) {
-                // the forece value will be range 1 from 0.
-                [mutableResultTouch setObject:[NSNumber numberWithFloat:value/maxValue] forKey:@"force"];
-            }else {
-                [mutableResultTouch setObject:[NSNumber numberWithFloat:0.0] forKey:@"force"];
-            }
+        float value = touch.force*60;
+        float maxValue = touch.maximumPossibleForce*60;
+        if (touch.maximumPossibleForce) {
+            // the forece value will be range 1 from 0.
+            [mutableResultTouch setObject:[NSNumber numberWithFloat:value/maxValue] forKey:@"force"];
+        }else {
+            [mutableResultTouch setObject:[NSNumber numberWithFloat:0.0] forKey:@"force"];
         }
         
-        [resultTouches addObject:mutableResultTouch];
+        if (mutableResultTouch) { // component is nil, mutableResultTouch will be nil
+            [resultTouches addObject:mutableResultTouch];
+        }
     }
     
     [_component fireEvent:eventName params:@{@"changedTouches":resultTouches ?: @[]}];

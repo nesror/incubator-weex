@@ -19,6 +19,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class WXSDKInstance;
 
 @interface WXSDKEngine : NSObject
@@ -68,7 +70,7 @@
  * @param properties properties to apply to the component
  *
  */
-+ (void)registerComponent:(NSString *)name withClass:(Class)clazz withProperties:(NSDictionary *)properties;
++ (void)registerComponent:(NSString *)name withClass:(Class)clazz withProperties:(NSDictionary * _Nullable)properties;
 
 /**
  * @abstract Registers a component for a given name, options and js code
@@ -80,7 +82,21 @@
  * @param serviceScript service js code to invoke
  *
  */
-+ (void)registerService:(NSString *)name withScript:(NSString *)serviceScript withOptions:(NSDictionary *)options;
++ (void)registerService:(NSString *)name withScript:(NSString *)serviceScript withOptions:(NSDictionary * _Nullable)options;
+
+/**
+ * @abstract Registers a component for a given name, options and js code
+ *
+ * @param name The service name to register
+ *
+ * @param options The service options to register
+ *
+ * @param serviceScript service js code to invoke
+ *
+ * @param completion Completion callback. JS is executed in asynchronously.
+ *
+ */
++ (void)registerService:(NSString *)name withScript:(NSString *)serviceScript withOptions:(NSDictionary * _Nullable)options completion:(nullable void(^)(BOOL result))completion;
 
 /**
  * @abstract Registers a component for a given name, options and js url
@@ -92,7 +108,21 @@
  * @param serviceScriptUrl The service url to register
  *
  */
-+ (void)registerService:(NSString *)name withScriptUrl:(NSURL *)serviceScriptUrl WithOptions:(NSDictionary *)options;
++ (void)registerService:(NSString *)name withScriptUrl:(NSURL *)serviceScriptUrl withOptions:(NSDictionary * _Nullable)options;
+
+/**
+ * @abstract Registers a component for a given name, options and js url
+ *
+ * @param name The service name to register
+ *
+ * @param options The service options to register
+ *
+ * @param serviceScriptUrl The service url to register
+ *
+ * @param completion Completion callback. JS is executed in asynchronously.
+ *
+ */
++ (void)registerService:(NSString *)name withScriptUrl:(NSURL *)serviceScriptUrl withOptions:(NSDictionary * _Nullable)options completion:(nullable void (^)(BOOL result))completion;
 
 /**
  * @abstract Registers a component for a given name, options and js code
@@ -187,6 +217,21 @@
  */
 + (void)connectDevToolServer:(NSString *)URL;
 
+/**
+ * @abstract Set the global device size of all pages.
+ * You could also set unique device size used by a page using interface of WXSDKInstance.
+ *
+ * @param size, the device size in UIKit system.
+ *
+ */
++ (void)setGlobalDeviceSize:(CGSize)size;
+
+/**
+ * @abstract Get the current global device size used by pages.
+ *
+ */
++ (CGSize)getGlobalDeviceSize;
+
 @end
 
 @interface WXSDKEngine (Deprecated)
@@ -195,3 +240,5 @@
 + (void)initSDKEnviroment:(NSString *)script DEPRECATED_MSG_ATTRIBUTE("To fix typo,  use initSDKEnvironment: method instead.");
 
 @end
+
+NS_ASSUME_NONNULL_END

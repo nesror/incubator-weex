@@ -24,7 +24,10 @@ function fireEvent (document, nodeId, type, event, domChanges, params) {
   if (el) {
     return document.fireEvent(el, type, event, domChanges, params)
   }
-  return new Error(`invalid element reference "${nodeId}"`)
+  else if (event) {
+    event._nodeId = nodeId
+    return document.fireEvent(document.getRef('_documentElement'), type, event, domChanges, params)
+  }
 }
 
 function callback (document, callbackId, data, ifKeepAlive) {
@@ -42,6 +45,10 @@ function componentHook (document, componentId, type, hook, args) {
   }
   catch (e) {
     console.error(`[JS Framework] Failed to trigger the "${type}@${hook}" hook on ${componentId}.`)
+
+    // Still throw the exception anyway, it should be caught
+    // and processed by the native for consistent error collecting.
+    throw e
   }
   return result
 }

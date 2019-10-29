@@ -19,14 +19,13 @@
 
 #import "WXRootViewController.h"
 #import "WXBaseViewController.h"
-#import "WXThreadSafeMutableArray.h"
 #import "WXDefine.h"
 
 typedef void(^OperationBlock)(void);
 
 @interface WXRootViewController() <UIGestureRecognizerDelegate>
 
-@property(nonatomic, strong) WXThreadSafeMutableArray *operationArray;
+@property (nonatomic, strong) NSMutableArray *operationArray;
 @property (nonatomic, assign) BOOL operationInProcess;
 
 @end
@@ -49,65 +48,22 @@ typedef void(^OperationBlock)(void);
 //reduced pop/push animation in iOS 7
 - (UIViewController *)popViewControllerAnimated:(BOOL)animated
 {
-    if (WX_SYS_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0"))
-        return [super popViewControllerAnimated:animated];
-    
-    __weak typeof(self) weakSelf = self;
-    [self addOperationBlock:^{
-        if ([self.viewControllers count] > 0 ) {
-            UIViewController *viewController = [super popViewControllerAnimated:NO];
-            if (!viewController) {
-                weakSelf.operationInProcess = NO;
-            }
-        }
-    }];
-    
-    return nil;
+    return [super popViewControllerAnimated:animated];
 }
 
 - (NSArray<UIViewController *> *)popToViewController:(UIViewController *)viewController animated:(BOOL)animated
 {
-    if (WX_SYS_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0"))
-        return [super popToViewController:viewController animated:animated];
-    
-    __weak typeof(self) weakSelf = self;
-    [self addOperationBlock:^{
-        if ([weakSelf.viewControllers containsObject:viewController]) {
-            NSArray *viewControllers = [super popToViewController:viewController animated:NO];
-            if (viewControllers.count == 0) {
-                weakSelf.operationInProcess = NO;
-            }
-        } else {
-            weakSelf.operationInProcess = NO;
-        }
-    }];
-    
-    return nil;
+    return [super popToViewController:viewController animated:animated];
 }
 
 - (NSArray<UIViewController *> *)popToRootViewControllerAnimated:(BOOL)animated
 {
-    if (WX_SYS_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0"))
-        return [super popToRootViewControllerAnimated:animated];
-    
-    __weak typeof(self) weakSelf = self;
-    [self addOperationBlock:^{
-        NSArray *viewControllers = [super popToRootViewControllerAnimated:NO];
-        if (viewControllers.count == 0) {
-            weakSelf.operationInProcess = NO;
-        }
-    }];
-    return nil;
+    return [super popToRootViewControllerAnimated:animated];
 }
 
 - (void)pushViewController:(UIViewController *)viewController animated:(BOOL)animated
 {
-    if (WX_SYS_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0"))
-        return [super pushViewController:viewController animated:animated];
-    
-    [self addOperationBlock:^{
-        [super pushViewController:viewController animated:NO];
-    }];
+    return [super pushViewController:viewController animated:animated];
 }
 
 - (void)addOperationBlock:(OperationBlock)operation
@@ -131,11 +87,10 @@ typedef void(^OperationBlock)(void);
     return YES;
 }
 
-- (NSMutableArray *)pendingBlocks
+- (NSMutableArray *)operationArray
 {
-    
     if (nil == _operationArray) {
-        _operationArray = [[WXThreadSafeMutableArray alloc] init];
+        _operationArray = [[NSMutableArray alloc] init];
     }
     
     return _operationArray;

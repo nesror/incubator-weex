@@ -17,7 +17,9 @@
  * under the License.
  */
 
-#import "WXType.h"
+#import <WeexSDK/WXType.h>
+
+NS_ASSUME_NONNULL_BEGIN
 
 @class WXComponent;
 @protocol WXScrollerProtocol <NSObject>
@@ -55,6 +57,7 @@
 
 - (CGPoint)contentOffset;
 
+- (void)setContentOffset:(CGPoint)contentOffset;
 - (void)setContentOffset:(CGPoint)contentOffset animated:(BOOL)animated;
 
 - (CGSize)contentSize;
@@ -73,7 +76,14 @@
 - (WXScrollDirection)scrollDirection;
 
 @optional
+
 - (NSString*)refreshType;
 - (BOOL)requestGestureShouldStopPropagation:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch;
+/**
+ * @abstract adjust for RTL
+ */
+- (void)adjustForRTL;
+
 @end
 
+NS_ASSUME_NONNULL_END

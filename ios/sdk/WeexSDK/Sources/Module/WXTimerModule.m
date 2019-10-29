@@ -23,6 +23,8 @@
 #import "WXAssert.h"
 #import "WXMonitor.h"
 #import "WXSDKInstance_performance.h"
+#import "WXSDKError.h"
+#import "WXExceptionUtils.h"
 
 @interface WXTimerTarget : NSObject
 
@@ -46,6 +48,7 @@
         
         if (weexInstance && !weexInstance.isJSCreateFinish) {
             weexInstance.performance.timerNum++;
+            [weexInstance.apmInstance updateFSDiffStats:KEY_PAGE_STATS_FS_TIMER_NUM withDiffValue:1];
         }
     }
     
@@ -55,6 +58,19 @@
 - (void)trigger
 {
     [[WXSDKManager bridgeMgr] callBack:_weexInstance.instanceId funcId:_callbackID params:nil keepAlive:_shouldRepeat];
+}
+
++ (void) checkExcuteInBack:(NSString*) instanceId
+{
+    //todo,if instance is nil or instance has detroy ,can't record timer in back.....
+    WXSDKInstance* instance = [WXSDKManager instanceForID:instanceId];
+    if (nil == instance) {
+        return;
+    }
+    if (instance.state == WeexInstanceBackground || instance.state == WeexInstanceDisappear
+        || instance.state == WeexInstanceDestroy) {
+        [instance.apmInstance updateDiffStats:KEY_PAGE_TIMER_BACK_NUM withDiffValue:1];
+    }
 }
 
 @end
@@ -150,6 +166,18 @@ WX_EXPORT_METHOD(@selector(clearInterval:))
     
     if (!_timers[callbackID]) {
         _timers[callbackID] = timer;
+        
+        if ([_timers count] > 30) {
+            // remove invalid timers
+            NSMutableArray* invalidTimerIds = [[NSMutableArray alloc] init];
+            for (NSString *cbId in _timers) {
+                NSTimer *timer = _timers[cbId];
+                if (![timer isValid]) {
+                    [invalidTimerIds addObject:cbId];
+                }
+            }
+            [_timers removeObjectsForKeys:invalidTimerIds];
+        }
     }
 }
 

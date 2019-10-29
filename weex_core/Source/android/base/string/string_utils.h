@@ -20,16 +20,17 @@
 #define _STRING_UTILS_H_
 
 #include <jni.h>
-#include <IPC/IPCArguments.h>
-#include <IPC/Serializing/IPCSerializer.h>
-#include <IPC/IPCString.h>
-#include <IPC/IPCByteArray.h>
 #include <malloc.h>
-#include "scoped_jstring.h"
-#include "scoped_jstring_utf8.h"
 #include <iostream>
 #include <sstream>
 #include <string>
+
+#include "scoped_jstring.h"
+#include "scoped_jstring_utf8.h"
+#include "third_party/IPC/IPCArguments.h"
+#include "third_party/IPC/Serializing/IPCSerializer.h"
+#include "third_party/IPC/IPCString.h"
+#include "third_party/IPC/IPCByteArray.h"
 
 namespace WeexCore {
 
@@ -64,11 +65,15 @@ static inline std::string jString2Str(JNIEnv *env, const jstring &jstr) {
 static inline std::string jString2StrFast(JNIEnv *env, const jstring &jstr){
   if (jstr == nullptr)
     return std::string("");
-  const char *nativeString = env->GetStringUTFChars(jstr, JNI_FALSE);
-  return std::string(nativeString);
+  auto nativeString = ScopedJStringUTF8(env, jstr);
+  return std::string(nativeString.getChars());
 }
 
 static std::string jByteArray2Str(JNIEnv *env, jbyteArray barr) {
+  if(barr == nullptr) {
+    return "";
+  }
+
   char *rtn = NULL;
   jsize alen = env->GetArrayLength(barr);
   jbyte *ba = env->GetByteArrayElements(barr, JNI_FALSE);
@@ -88,7 +93,6 @@ static std::string jByteArray2Str(JNIEnv *env, jbyteArray barr) {
   }
 
 }
-
 
 static inline jbyteArray newJByteArray(JNIEnv *env, const char* data, int length) {
   jbyteArray jarray = nullptr;
@@ -173,6 +177,33 @@ static inline int getArgumentAsInt32(JNIEnv* env, IPCArguments* arguments, int a
   int ret = 0;
   if (arguments->getType(argument) == IPCType::INT32) {
     const int32_t type = arguments->get<int32_t>(argument);
+    ret = type;
+  }
+  return ret;
+}
+
+static inline int getArgumentAsInt32(IPCArguments* arguments, int argument) {
+  int ret = 0;
+  if (arguments->getType(argument) == IPCType::INT32) {
+    const int32_t type = arguments->get<int32_t>(argument);
+    ret = type;
+  }
+  return ret;
+}
+
+static inline int64_t getArgumentAsInt64(IPCArguments* arguments, int argument) {
+  int ret = 0;
+  if (arguments->getType(argument) == IPCType::INT64) {
+    const int64_t type = arguments->get<int64_t>(argument);
+    ret = type;
+  }
+  return ret;
+}
+
+static inline float getArgumentAsFloat(IPCArguments* arguments, int argument) {
+  float ret = 0;
+  if (arguments->getType(argument) == IPCType::FLOAT) {
+    const float type = arguments->get<float>(argument);
     ret = type;
   }
   return ret;

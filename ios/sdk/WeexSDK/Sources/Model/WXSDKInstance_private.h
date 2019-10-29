@@ -19,14 +19,14 @@
 
 #import <Foundation/Foundation.h>
 #import "WXSDKInstance.h"
-#import "WXComponentManager.h"
 #import "WXModuleMethod.h"
 #import "WXThreadSafeMutableDictionary.h"
 #import <JavaScriptCore/JavaScriptCore.h>
 
 @interface WXSDKInstance ()
 
-@property (nonatomic, assign) CGFloat viewportWidth;
+@property (nonatomic, assign) CGFloat viewportWidth; // view port width this instance is using
+@property (nonatomic, assign) CGSize screenSize; // screen size this instance is using
 
 @property (nonatomic, strong) WXThreadSafeMutableDictionary *moduleInstances;
 @property (nonatomic, strong) NSMutableDictionary *naviBarStyles;
@@ -38,8 +38,6 @@
 @property (nonatomic, strong) NSString *callCreateInstanceContext;
 @property (nonatomic, strong) NSString *createInstanceContextResult;
 @property (nonatomic, strong) NSString *executeRaxApiResult;
-
-@property (nonatomic, readonly, strong) WXComponentManager *componentManager;
 
 - (void)addModuleEventObservers:(NSString*)event callback:(NSString*)callbackId option:(NSDictionary*)option moduleClassName:(NSString*)moduleClassName;
 - (void)_addModuleEventObserversWithModuleMethod:(WXModuleMethod*)method;

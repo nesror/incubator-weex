@@ -31,6 +31,15 @@
 
 #pragma clang diagnostic ignored "-Wobjc-protocol-method-implementation"
 
+typedef NS_ENUM(NSInteger, WXComponentBorderRecord) {
+    WXComponentBorderRecordNone = 0,
+    WXComponentBorderRecordTop = 1,
+    WXComponentBorderRecordRight = 1 << 1,
+    WXComponentBorderRecordBottom = 1 << 2,
+    WXComponentBorderRecordLeft = 1 << 3,
+    WXComponentBorderRecordAll = WXComponentBorderRecordTop | WXComponentBorderRecordRight | WXComponentBorderRecordBottom | WXComponentBorderRecordLeft
+};
+
 @implementation WXComponent (Display)
 
 #pragma mark Public
@@ -61,7 +70,7 @@
         return YES;
     }
     
-    if (![self _needsDrawBorder]) {
+    if (![self _needsDrawBorder] && _lastBorderRecords == WXComponentBorderRecordNone) {
         WXLogDebug(@"No need to draw border for %@", self.ref);
         WXPerformBlockOnMainThread(^{
             [self _resetNativeBorderRadius];
@@ -96,19 +105,26 @@
 
 - (WXDisplayBlock)_displayBlock
 {
+    __weak WXComponent* wself = self;
     WXDisplayBlock displayBlock = ^UIImage *(CGRect bounds, BOOL(^isCancelled)(void)) {
         if (isCancelled()) {
             return nil;
         }
         
-        UIGraphicsBeginImageContextWithOptions(bounds.size, [self _bitmapOpaqueWithSize:bounds.size] , 0.0);
-        UIImage *image = [self drawRect:bounds];
-        if (!image) {
-            image = UIGraphicsGetImageFromCurrentImageContext();
+        __strong WXComponent* sself = wself;
+        if (sself) {
+            UIGraphicsBeginImageContextWithOptions(bounds.size, [sself _bitmapOpaqueWithSize:bounds.size] , 0.0);
+            UIImage *image = [sself drawRect:bounds];
+            if (!image) {
+                image = UIGraphicsGetImageFromCurrentImageContext();
+            }
+            UIGraphicsEndImageContext();
+            
+            return image;
         }
-        UIGraphicsEndImageContext();
-        
-        return image;
+        else {
+            return nil;
+        }
     };
     
     return displayBlock;
@@ -273,7 +289,7 @@
 - (void)_collectCompositingDisplayBlocks:(NSMutableArray *)displayBlocks context:(CGContextRef)context isCancelled:(BOOL(^)(void))isCancelled
 {
     // TODO: compositingChild has no chance to applyPropertiesToView, need update here?
-    UIColor *backgroundColor = _backgroundColor;
+    UIColor *backgroundColor = self.styleBackgroundColor;
     BOOL clipsToBounds = _clipToBounds;
     CGRect frame = self.calculatedFrame;
     CGRect bounds = CGRectMake(0, 0, frame.size.width, frame.size.height);
@@ -333,10 +349,13 @@
     
     CGContextSetAlpha(context, _opacity);
     // fill background color
-    if (_backgroundColor && CGColorGetAlpha(_backgroundColor.CGColor) > 0) {
-        CGContextSetFillColorWithColor(context, _backgroundColor.CGColor);
+    if (self.styleBackgroundColor && CGColorGetAlpha(self.styleBackgroundColor.CGColor) > 0) {
+        CGContextSetFillColorWithColor(context, self.styleBackgroundColor.CGColor);
         UIBezierPath *bezierPath = [UIBezierPath wx_bezierPathWithRoundedRect:rect topLeft:topLeft topRight:topRight bottomLeft:bottomLeft bottomRight:bottomRight];
         [bezierPath fill];
+        WXPerformBlockOnMainThread(^{
+            _view.backgroundColor = UIColor.clearColor;
+        });
     }
     // Top
     if (_borderTopWidth > 0) {
@@ -354,6 +373,9 @@
         CGContextAddLineToPoint(context, topLeft, _borderTopWidth/2);
         CGContextAddArc(context, topLeft, topLeft, topLeft-_borderTopWidth/2, -M_PI_2, -M_PI_2-M_PI_4-(_borderLeftWidth>0?0:M_PI_4), 1);
         CGContextStrokePath(context);
+        _lastBorderRecords |= WXComponentBorderRecordTop;
+    } else {
+        _lastBorderRecords &= ~(WXComponentBorderRecordTop);
     }
     
     // Left
@@ -372,6 +394,9 @@
         CGContextAddLineToPoint(context, _borderLeftWidth/2, size.height-bottomLeft);
         CGContextAddArc(context, bottomLeft, size.height-bottomLeft, bottomLeft-_borderLeftWidth/2, M_PI, M_PI-M_PI_4-(_borderBottomWidth>0?0:M_PI_4), 1);
         CGContextStrokePath(context);
+        _lastBorderRecords |= WXComponentBorderRecordLeft;
+    } else {
+        _lastBorderRecords &= ~WXComponentBorderRecordLeft;
     }
     
     // Bottom
@@ -390,6 +415,9 @@
         CGContextAddLineToPoint(context, size.width-bottomRight, size.height-_borderBottomWidth/2);
         CGContextAddArc(context, size.width-bottomRight, size.height-bottomRight, bottomRight-_borderBottomWidth/2, M_PI_2, M_PI_4-(_borderRightWidth > 0?0:M_PI_4), 1);
         CGContextStrokePath(context);
+        _lastBorderRecords |= WXComponentBorderRecordBottom;
+    } else {
+        _lastBorderRecords &= ~WXComponentBorderRecordBottom;
     }
     
     // Right
@@ -408,9 +436,21 @@
         CGContextAddLineToPoint(context, size.width-_borderRightWidth/2, topRight);
         CGContextAddArc(context, size.width-topRight, topRight, topRight-_borderRightWidth/2, 0, -M_PI_4-(_borderTopWidth > 0?0:M_PI_4), 1);
         CGContextStrokePath(context);
+        _lastBorderRecords |= WXComponentBorderRecordRight;
+    } else {
+        _lastBorderRecords &= ~WXComponentBorderRecordRight;
     }
-    
+
     CGContextStrokePath(context);
+    
+    //clipRadius is beta feature
+    //TO DO: remove _clipRadius property
+    if (_clipToBounds && _clipRadius) {
+        BOOL radiusEqual = _borderTopLeftRadius == _borderTopRightRadius && _borderTopRightRadius == _borderBottomRightRadius && _borderBottomRightRadius == _borderBottomLeftRadius;
+        if (!radiusEqual) {
+            self.layer.mask = [self drawBorderRadiusMaskLayer:rect];
+        }
+    }
 }
 
 - (BOOL)_needsDrawBorder
@@ -554,7 +594,7 @@ do {\
             _layer.borderWidth = _borderTopWidth;
             _layer.borderColor = _borderTopColor.CGColor;
             if ((_transition.transitionOptions & WXTransitionOptionsBackgroundColor) != WXTransitionOptionsBackgroundColor ) {
-                _layer.backgroundColor = _backgroundColor.CGColor;
+                _layer.backgroundColor = self.styleBackgroundColor.CGColor;
             }
         }
     }
@@ -566,7 +606,25 @@ do {\
     WXRoundedRect *borderRect = [[WXRoundedRect alloc] initWithRect:rect topLeft:_borderTopLeftRadius topRight:_borderTopRightRadius bottomLeft:_borderBottomLeftRadius bottomRight:_borderBottomRightRadius];
     WXRadii *radii = borderRect.radii;
     BOOL hasBorderRadius = [radii hasBorderRadius];
-    return (!hasBorderRadius) && _opacity == 1.0 && CGColorGetAlpha(_backgroundColor.CGColor) == 1.0 && [self _needsDrawBorder];
+    return (!hasBorderRadius) && _opacity == 1.0 && CGColorGetAlpha(self.styleBackgroundColor.CGColor) == 1.0 && [self _needsDrawBorder];
+}
+
+- (CAShapeLayer *)drawBorderRadiusMaskLayer:(CGRect)rect
+{
+    if ([self hasBorderRadiusMaskLayer]) {
+        WXRoundedRect *borderRect = [[WXRoundedRect alloc] initWithRect:rect topLeft:_borderTopLeftRadius topRight:_borderTopRightRadius bottomLeft:_borderBottomLeftRadius bottomRight:_borderBottomRightRadius];
+        WXRadii *radii = borderRect.radii;
+        UIBezierPath *bezierPath = [UIBezierPath wx_bezierPathWithRoundedRect:rect topLeft:radii.topLeft topRight:radii.topRight bottomLeft:radii.bottomLeft bottomRight:radii.bottomRight];
+        CAShapeLayer *maskLayer = [CAShapeLayer layer];
+        maskLayer.path = bezierPath.CGPath;
+        return maskLayer;
+    }
+    return nil;
+}
+
+- (BOOL)hasBorderRadiusMaskLayer
+{
+    return _borderTopLeftRadius > 0.001 || _borderTopRightRadius > 0.001 || _borderBottomLeftRadius > 0.001 || _borderBottomLeftRadius > 0.001;
 }
 
 #pragma mark - Deprecated

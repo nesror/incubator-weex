@@ -25,6 +25,9 @@
 #import "WXComponent+Layout.h"
 
 @interface WXRefreshComponent()
+{
+    NSTimeInterval _refreshStateTriggerTime;
+}
 
 @property (nonatomic) BOOL displayState;
 @property (nonatomic) BOOL initFinished;
@@ -105,14 +108,13 @@
     [self fireEvent:@"pullingdown" params:param];
 }
 
-- (void)_insertSubcomponent:(WXComponent *)subcomponent atIndex:(NSInteger)index
+- (BOOL)_insertSubcomponent:(WXComponent *)subcomponent atIndex:(NSInteger)index
 {
-    if (subcomponent) {
-        [super _insertSubcomponent:subcomponent atIndex:index];
-        if ([subcomponent isKindOfClass:[WXLoadingIndicator class]]) {
-            _indicator = (WXLoadingIndicator*)subcomponent;
-        }
+    BOOL inserted = [super _insertSubcomponent:subcomponent atIndex:index];
+    if ([subcomponent isKindOfClass:[WXLoadingIndicator class]]) {
+        _indicator = (WXLoadingIndicator*)subcomponent;
     }
+    return inserted;
 }
 
 - (void)updateAttributes:(NSDictionary *)attributes
@@ -177,11 +179,38 @@
                 [_indicator.view setHidden:NO];
             }
             [_indicator start];
+            [scrollerProtocol setContentOffset:offset animated:YES];
+            _refreshStateTriggerTime = CFAbsoluteTimeGetCurrent();
         } else {
             offset.y = 0;
             [_indicator stop];
+            if (CFAbsoluteTimeGetCurrent() - _refreshStateTriggerTime < 0.3) {
+                /* If javascript doesn't do any refreshing and only update 'display' attribute very quickly.
+                 The previous '[scrollerProtocol setContentOffset:offset animated:YES];' is not finished,
+                 we should also use '[scrollerProtocol setContentOffset:offset animated:YES]' to restore offset.
+                 Or the scroller will not stop at 0.
+                 */
+                [scrollerProtocol setContentOffset:offset animated:YES];
+            }
+            else {
+                [UIView animateWithDuration:0.25 animations:^{
+                    [scrollerProtocol setContentOffset:offset];
+                }];
+            }
         }
-        [scrollerProtocol setContentOffset:offset animated:YES];
+        
+        /* If we are adding elements while refreshing, like this demo:http://dotwe.org/vue/f541ed72a121db8447a233b777003e8a
+         the scroller cannot stay at (0, 0) when all animations are finished.
+         So we use
+            [scrollerProtocol setContentOffset:offset animated:YES];
+         when _displayState is TRUE and use
+            [UIView animateWithDuration:0.25 animations:^{
+                [scrollerProtocol setContentOffset:offset];
+            }];
+         when _displayState is FALSE.
+         
+         All things go well. Probably setContentOffset: has higher priority than setContentOffset:animated:
+         */
     }
   
 }

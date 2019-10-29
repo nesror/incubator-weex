@@ -1,0 +1,58 @@
+[
+  {
+    "level": "INFO",
+    "message": "Start JSON generation. Platform version: 16 min SDK version: x86"
+  },
+  {
+    "level": "INFO",
+    "message": "No CMake version was specified in build.gradle. Choosing a suitable version."
+  },
+  {
+    "level": "INFO",
+    "message": "Trying to locate CMake in local SDK repository."
+  },
+  {
+    "level": "INFO",
+    "message": "CMake \u00273.10.2\u0027 found in SDK did not match requested version \u00273.6.0\u0027."
+  },
+  {
+    "level": "INFO",
+    "message": "- CMake found in SDK at \u0027D:\\Sdk\\cmake\\3.6.4111459\u0027 had version \u00273.6.0\u0027"
+  },
+  {
+    "level": "INFO",
+    "message": "rebuilding JSON F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\android_gradle_build.json due to:"
+  },
+  {
+    "level": "INFO",
+    "message": "- expected json F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\android_gradle_build.json file is not present, will remove stale json folder"
+  },
+  {
+    "level": "INFO",
+    "message": "- missing previous command file F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\build_command.txt, will remove stale json folder"
+  },
+  {
+    "level": "INFO",
+    "message": "- command changed from previous, will remove stale json folder"
+  },
+  {
+    "level": "INFO",
+    "message": "removing stale contents from \u0027F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\u0027"
+  },
+  {
+    "level": "INFO",
+    "message": "created folder \u0027F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\u0027"
+  },
+  {
+    "level": "INFO",
+    "message": "executing cmake Executable : D:\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe\narguments : \n-HF:\\qccr\\incubator-weex\\weex_core\n-BF:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\n-DANDROID_ABI\u003dx86\n-DANDROID_PLATFORM\u003dandroid-16\n-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dF:\\qccr\\incubator-weex\\android\\sdk\\build\\intermediates\\cmake\\debug\\obj\\x86\n-DCMAKE_BUILD_TYPE\u003dDebug\n-DANDROID_NDK\u003dD:\\Sdk\\ndk\\20.0.5594570\n-DCMAKE_TOOLCHAIN_FILE\u003dD:\\Sdk\\ndk\\20.0.5594570\\build\\cmake\\android.toolchain.cmake\n-DCMAKE_MAKE_PROGRAM\u003dD:\\Sdk\\cmake\\3.6.4111459\\bin\\ninja.exe\n-GAndroid Gradle - Ninja\n-DANDROID_PLATFORM\u003dandroid-19\n-DANDROID_TOOLCHAIN\u003dgcc\n-DANDROID_STL\u003dgnustl_static\n-DCMAKE_BUILD_TYPE\u003dRelease\njvmArgs : \n\n"
+  },
+  {
+    "level": "INFO",
+    "message": "Executable : D:\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe\narguments : \n-HF:\\qccr\\incubator-weex\\weex_core\n-BF:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\n-DANDROID_ABI\u003dx86\n-DANDROID_PLATFORM\u003dandroid-16\n-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dF:\\qccr\\incubator-weex\\android\\sdk\\build\\intermediates\\cmake\\debug\\obj\\x86\n-DCMAKE_BUILD_TYPE\u003dDebug\n-DANDROID_NDK\u003dD:\\Sdk\\ndk\\20.0.5594570\n-DCMAKE_TOOLCHAIN_FILE\u003dD:\\Sdk\\ndk\\20.0.5594570\\build\\cmake\\android.toolchain.cmake\n-DCMAKE_MAKE_PROGRAM\u003dD:\\Sdk\\cmake\\3.6.4111459\\bin\\ninja.exe\n-GAndroid Gradle - Ninja\n-DANDROID_PLATFORM\u003dandroid-19\n-DANDROID_TOOLCHAIN\u003dgcc\n-DANDROID_STL\u003dgnustl_static\n-DCMAKE_BUILD_TYPE\u003dRelease\njvmArgs : \n\n"
+  },
+  {
+    "level": "INFO",
+    "message": "JSON generation completed with problem. Exception: Build command failed.\nError while executing process D:\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe with arguments {-HF:\\qccr\\incubator-weex\\weex_core -BF:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86 -DANDROID_ABI\u003dx86 -DANDROID_PLATFORM\u003dandroid-16 -DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dF:\\qccr\\incubator-weex\\android\\sdk\\build\\intermediates\\cmake\\debug\\obj\\x86 -DCMAKE_BUILD_TYPE\u003dDebug -DANDROID_NDK\u003dD:\\Sdk\\ndk\\20.0.5594570 -DCMAKE_TOOLCHAIN_FILE\u003dD:\\Sdk\\ndk\\20.0.5594570\\build\\cmake\\android.toolchain.cmake -DCMAKE_MAKE_PROGRAM\u003dD:\\Sdk\\cmake\\3.6.4111459\\bin\\ninja.exe -GAndroid Gradle - Ninja -DANDROID_PLATFORM\u003dandroid-19 -DANDROID_TOOLCHAIN\u003dgcc -DANDROID_STL\u003dgnustl_static -DCMAKE_BUILD_TYPE\u003dRelease}\n-- Configuring incomplete, errors occurred!\n\nCMake Error at D:/Sdk/ndk/20.0.5594570/build/cmake/android.toolchain.cmake:169 (message):\n  GCC is no longer supported.  See\n  https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.\nCall Stack (most recent call first):\n  D:/Sdk/cmake/3.6.4111459/share/cmake-3.6/Modules/CMakeDetermineSystem.cmake:98 (include)\n  CMakeLists.txt:2 (project)\n\n\nCMake Error: CMAKE_C_COMPILER not set, after EnableLanguage\nCMake Error: CMAKE_CXX_COMPILER not set, after EnableLanguage\n"
+  }
+]

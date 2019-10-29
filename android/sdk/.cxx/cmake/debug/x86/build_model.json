@@ -1,0 +1,73 @@
+{
+  "variant": {
+    "module": {
+      "rootBuildGradleFolder": "F:\\qccr\\incubator-weex\\android",
+      "sdkFolder": "D:\\Sdk",
+      "isNativeCompilerSettingsCacheEnabled": false,
+      "isBuildOnlyTargetAbiEnabled": true,
+      "splitsAbiFilterSet": [],
+      "intermediatesFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\build\\intermediates",
+      "gradleModulePathName": ":weex_sdk",
+      "moduleRootFolder": "F:\\qccr\\incubator-weex\\android\\sdk",
+      "makeFile": "F:\\qccr\\incubator-weex\\weex_core\\CMakeLists.txt",
+      "buildSystem": "CMAKE",
+      "compilerSettingsCacheFolder": "F:\\qccr\\incubator-weex\\android\\.cxx",
+      "cxxFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx",
+      "ndkFolder": "D:\\Sdk\\ndk\\20.0.5594570",
+      "ndkVersion": "20.0.5594570",
+      "ndkSupportedAbiList": [
+        "ARMEABI_V7A",
+        "ARM64_V8A",
+        "X86",
+        "X86_64"
+      ],
+      "ndkDefaultAbiList": [
+        "ARMEABI_V7A",
+        "ARM64_V8A",
+        "X86",
+        "X86_64"
+      ],
+      "cmakeToolchainFile": "."
+    },
+    "buildSystemArgumentList": [
+      "-DANDROID_PLATFORM\u003dandroid-19",
+      "-DANDROID_TOOLCHAIN\u003dgcc",
+      "-DANDROID_STL\u003dgnustl_static",
+      "-DCMAKE_BUILD_TYPE\u003dRelease"
+    ],
+    "cFlagList": [],
+    "cppFlagsList": [],
+    "variantName": "debug",
+    "soFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\build\\intermediates\\cmake\\debug\\lib",
+    "objFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\build\\intermediates\\cmake\\debug\\obj",
+    "jsonFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug",
+    "gradleBuildOutputFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug",
+    "isDebuggableEnabled": true,
+    "validAbiList": [
+      "ARMEABI_V7A",
+      "X86"
+    ],
+    "buildTargetSet": []
+  },
+  "abi": "X86",
+  "abiPlatformVersion": 16,
+  "cxxBuildFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86",
+  "jsonFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\android_gradle_build.json",
+  "gradleBuildOutputFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86",
+  "objFolder": "F:\\qccr\\incubator-weex\\android\\sdk\\build\\intermediates\\cmake\\debug\\obj\\x86",
+  "buildCommandFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\build_command.txt",
+  "buildOutputFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\build_output.txt",
+  "modelOutputFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\build_model.json",
+  "cmake": {
+    "cmakeListsWrapperFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86\\CMakeLists.txt",
+    "toolchainWrapperFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86\\android_gradle_build.toolchain.cmake",
+    "buildGenerationStateFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86\\build_generation_state.json",
+    "cacheKeyFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86\\compiler_cache_key.json",
+    "compilerCacheUseFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86\\compiler_cache_use.json",
+    "compilerCacheWriteFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86\\compiler_cache_write.json",
+    "toolchainSettingsFromCacheFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cxx\\debug\\x86\\compiler_settings_cache.cmake",
+    "cmakeWrappingBaseFolder": "."
+  },
+  "jsonGenerationLoggingRecordFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\json_generation_record.json",
+  "compileCommandsJsonFile": "F:\\qccr\\incubator-weex\\android\\sdk\\.cxx\\cmake\\debug\\x86\\compile_commands.json"
+}
